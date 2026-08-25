@@ -721,7 +721,7 @@ function ingestRequest(e){
       b:(m.blocks||[]).map(b=>({t:b.type||'text',n:b.name||null,c:b.chars||0,x:b.text||'',e:!!b.isError}))})),
     trace:(p.trace||[]).map(t=>({i:t.i,tool:t.tool,desc:t.desc||'',arg:t.arg||'',m:t.m})),
   };
-  if(call.trace.length) mergeActions(call.trace.map(t=>({...t,k:actKey(t)})), call.time);
+  if(call.trace.length) mergeActions(call.trace, call.time);
   const key=e.uid||e.id;
   const at=callIndex[key];
   if(at!=null){ DATA.calls[at]=call; return true; }     // replay/duplicate
@@ -1055,11 +1055,16 @@ const RATE_IN=()=>T.rateIn||0;
    appears without waiting for a refetch. */
 const ACTS={list:[],total:0,keys:new Set(),loaded:false,newest:null};
 const actKey=a=>`${a.i}|${a.tool}|${(a.arg||'').slice(0,120)}`;
+/* One action arrives twice: live over SSE (call.trace) and again from
+   /__actions when the ledger loads. The server stamps its rows with a hashed
+   key, this page derives a sliced one, so trusting a.k meant the same action
+   held two different keys and every row rendered twice. Always key locally —
+   both sources carry i/tool/arg, so one rule covers both. */
 function mergeActions(rows,stamp){
   let added=0;
   for(const a of rows||[]){
     if(!a||!a.tool) continue;
-    const k=a.k||actKey(a);
+    const k=actKey(a);
     if(ACTS.keys.has(k)) continue;
     ACTS.keys.add(k);
     ACTS.list.push({k,t:a.t||stamp||new Date().toISOString(),i:a.i,tool:a.tool,desc:a.desc||'',arg:a.arg||''});

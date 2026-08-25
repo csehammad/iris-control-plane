@@ -68,8 +68,24 @@ function ensureGitignore(projectRoot) {
   }
 }
 
+const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "::1", "[::1]"]);
+
 /**
- * @param {{ cwd?: string, proxyUrl?: string }} opts
+ * True when a base URL points at a local Iris rather than a deliberate custom
+ * upstream. Only these are safe to re-point when the port moves.
+ * @param {unknown} url
+ */
+function isLocalIrisUrl(url) {
+  try {
+    return LOOPBACK_HOSTS.has(new URL(String(url)).hostname);
+  } catch {
+    // FALLBACK-GUARD: INTENTIONAL — unparseable value is left alone
+    return false;
+  }
+}
+
+/**
+ * @param {{ cwd?: string, proxyUrl?: string, port?: number|string }} opts
  */
 export function installClaudeProject(opts = {}) {
   const projectRoot = resolveProjectRoot(opts.cwd || process.cwd());
@@ -77,7 +93,8 @@ export function installClaudeProject(opts = {}) {
   const claudeDir = join(projectRoot, ".claude");
   mkdirSync(claudeDir, { recursive: true });
   const settingsPath = join(claudeDir, "settings.json");
-  const proxyUrl = opts.proxyUrl || "http://127.0.0.1:8787";
+  const port = Number(opts.port ?? process.env.PROXY_PORT ?? 8787);
+  const proxyUrl = opts.proxyUrl || `http://127.0.0.1:${port}`;
 
   let settings = {};
   try {
@@ -88,7 +105,22 @@ export function installClaudeProject(opts = {}) {
   }
 
   settings.env = settings.env || {};
-  settings.env.ANTHROPIC_BASE_URL = settings.env.ANTHROPIC_BASE_URL || proxyUrl;
+  // A stale loopback URL is worse than no URL: it silently routes this
+  // project's traffic into whichever Iris instance holds that port, which
+  // records it under a different project and evaluates Guard against a
+  // different envelope and project root. Re-point those; leave a custom
+  // (non-loopback) upstream exactly as the user set it.
+  const previousBaseUrl = settings.env.ANTHROPIC_BASE_URL;
+  let baseUrlAction = "kept";
+  if (!previousBaseUrl) {
+    settings.env.ANTHROPIC_BASE_URL = proxyUrl;
+    baseUrlAction = "set";
+  } else if (previousBaseUrl !== proxyUrl && isLocalIrisUrl(previousBaseUrl)) {
+    settings.env.ANTHROPIC_BASE_URL = proxyUrl;
+    baseUrlAction = "repointed";
+  } else if (previousBaseUrl !== proxyUrl) {
+    baseUrlAction = "external";
+  }
   settings.env.IRIS_HOME = settings.env.IRIS_HOME || irisHome();
   settings.permissions = settings.permissions || {};
   if (!Array.isArray(settings.permissions.deny)) settings.permissions.deny = [];
@@ -137,6 +169,8 @@ export function installClaudeProject(opts = {}) {
     name: meta.name,
     settingsPath,
     proxyUrl: settings.env.ANTHROPIC_BASE_URL,
+    baseUrlAction,
+    previousBaseUrl: previousBaseUrl || null,
     envelopePath: envPath,
     hookPath: HOOK_PATH,
   };

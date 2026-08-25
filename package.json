@@ -1,6 +1,6 @@
 {
   "name": "@zero-drift/iris",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Local context, cost, policy and execution control for Claude Code. Remove unused tool context, gate risky actions, and investigate every session.",
   "type": "module",
   "bin": {

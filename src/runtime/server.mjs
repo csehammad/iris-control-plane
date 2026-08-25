@@ -108,12 +108,65 @@ function json(res, status, obj) {
   res.end(JSON.stringify(obj));
 }
 
+const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "::1", "[::1]"]);
+
+/**
+ * Ask whoever holds a port whether they are Iris, and for which project.
+ * Never throws — a closed or foreign socket just answers null.
+ *
+ * @param {number} port
+ * @returns {Promise<{ projectId?: string, repo?: string, port?: number }|null>}
+ */
+async function probeIris(port) {
+  try {
+    const res = await fetch(`http://127.0.0.1:${port}/__meta`, {
+      signal: AbortSignal.timeout(700),
+    });
+    if (!res.ok) return null;
+    const meta = await res.json();
+    return meta && typeof meta === "object" && meta.projectId ? meta : null;
+  } catch {
+    // FALLBACK-GUARD: INTENTIONAL — not Iris, or not answering
+    return null;
+  }
+}
+
+/**
+ * First port in [from, from+span) that accepts a bind on 127.0.0.1.
+ * @param {number} from
+ * @param {number} span
+ * @returns {Promise<number|null>}
+ */
+function findFreePort(from, span) {
+  return new Promise((done) => {
+    let port = from;
+    const tryOne = () => {
+      if (port >= from + span) return done(null);
+      const probe = http.createServer();
+      probe.once("error", () => {
+        port++;
+        tryOne();
+      });
+      probe.listen(port, "127.0.0.1", () => {
+        const got = /** @type {any} */ (probe.address())?.port ?? port;
+        probe.close(() => done(got));
+      });
+    };
+    tryOne();
+  });
+}
+
 /**
  * Start Iris on 127.0.0.1.
- * @returns {{ server: http.Server, paths: object, port: number }}
+ * @returns {{ server: http.Server, paths: object, port: number, boundPort: number }}
  */
 export function startServer(opts = {}) {
   const PORT = Number(opts.port ?? process.env.PROXY_PORT ?? 8787);
+  // An explicitly requested port is honoured or refused — never silently moved,
+  // because .claude/settings.json already points Claude Code at a fixed URL.
+  const PORT_EXPLICIT = opts.port != null || process.env.PROXY_PORT != null;
+  const CLI_MODE = opts.handleSignals !== false;
+  let boundPort = PORT;
   const UPSTREAM = (opts.upstream ?? process.env.ANTHROPIC_PROXY_TARGET ?? "https://api.anthropic.com").replace(
     /\/$/,
     ""
@@ -138,7 +191,6 @@ export function startServer(opts = {}) {
   const trajectory = createTrajectoryTracker();
   const counter = { value: 0 };
   const lastBodies = [];
-  const retentionDays = Number(process.env.IRIS_RETENTION_DAYS || 30);
 
   const adapter = resolveAdapter(opts.adapter || "claude-code", {
     settingsPath: paths.settingsPath,
@@ -227,7 +279,7 @@ export function startServer(opts = {}) {
       json(clientRes, 200, {
         session: session.id,
         startedAt: session.startedAt,
-        port: PORT,
+        port: boundPort,
         upstream: UPSTREAM,
         repo: paths.project.name || paths.projectRoot.split("/").filter(Boolean).pop(),
         cwd: paths.projectRoot,
@@ -251,7 +303,6 @@ export function startServer(opts = {}) {
           vault: vault.size,
           wireStats,
         },
-        retentionDays,
       });
       return;
     }
@@ -576,18 +627,152 @@ export function startServer(opts = {}) {
     adapter.host.handleProxyRequest(clientReq, clientRes, ctx);
   });
 
-  server.listen(PORT, "127.0.0.1", () => {
+  /** A project already wired for Iris — `init` has installed the hook. */
+  function hasIrisHook(settings) {
+    const blob = JSON.stringify(settings?.hooks || {});
+    return blob.includes("iris.mjs") && blob.includes("hook");
+  }
+
+  /**
+   * Keep .claude/settings.json pointed at the port this instance actually bound.
+   *
+   * A stale loopback URL does not fail visibly: Claude Code keeps talking to
+   * whichever Iris holds that port, so this project's traffic is recorded under
+   * a different project and Guard evaluates it against a different envelope and
+   * project root. Re-pointing is therefore a correctness fix, not a nicety.
+   *
+   * Only ever touches a loopback URL in an already-initialised project. A
+   * custom upstream is the user's choice. Set IRIS_AUTOWIRE=0 to manage the
+   * file by hand.
+   */
+  function autoWireSettings() {
+    if (process.env.IRIS_AUTOWIRE === "0") return { action: "disabled" };
+
+    let raw;
+    try {
+      raw = JSON.parse(readFileSync(paths.settingsPath, "utf8"));
+    } catch {
+      // FALLBACK-GUARD: INTENTIONAL — no settings yet; `init` owns the first write
+      return { action: "none" };
+    }
+
+    const url = raw?.env?.ANTHROPIC_BASE_URL;
+    if (!url) return { action: "none" };
+
+    let host, wired;
+    try {
+      const u = new URL(String(url));
+      host = u.hostname;
+      wired = Number(u.port || 80);
+    } catch {
+      // FALLBACK-GUARD: INTENTIONAL — unparseable value is left alone
+      return { action: "none" };
+    }
+
+    if (!LOOPBACK_HOSTS.has(host)) return { action: "external", url: String(url) };
+    if (wired === boundPort) return { action: "ok" };
+    if (!hasIrisHook(raw)) return { action: "uninitialised", wired };
+
+    raw.env.ANTHROPIC_BASE_URL = `http://127.0.0.1:${boundPort}`;
+    try {
+      writeFileSync(paths.settingsPath, JSON.stringify(raw, null, 2) + "\n");
+    } catch (e) {
+      return { action: "failed", wired, error: e instanceof Error ? e.message : String(e) };
+    }
+    return { action: "repointed", wired };
+  }
+
+  function banner() {
+    const wire = autoWireSettings();
     console.log("");
     console.log("Iris for Claude Code");
     console.log(`  Project       ${paths.project.name} (${paths.projectId})`);
     console.log(`  Adapter       ${adapter.label}`);
-    console.log(`  Proxy         http://127.0.0.1:${PORT}`);
+    console.log(`  Proxy         http://127.0.0.1:${boundPort}`);
     console.log(`  Upstream      ${UPSTREAM}`);
     console.log(`  Guard         ${existsSync(paths.envelopePath) ? "configured" : "inactive (accept envelope in UI)"}`);
     console.log(`  Redaction     ${REDACT_ON ? "at-rest" : "off"}${WIRE_REDACT ? " + wire" : ""}`);
-    console.log(`  UI            http://127.0.0.1:${PORT}/__monitor`);
-    console.log(`  Guide         http://127.0.0.1:${PORT}/__guide`);
-    console.log("  Point ANTHROPIC_BASE_URL here — Claude Code is protected.\n");
+    console.log(`  UI            http://127.0.0.1:${boundPort}/__monitor`);
+    console.log(`  Guide         http://127.0.0.1:${boundPort}/__guide`);
+
+    if (wire.action === "repointed") {
+      console.log(`  Settings      re-pointed ${wire.wired} -> ${boundPort} in .claude/settings.json`);
+      console.log("                restart Claude Code to pick it up");
+    } else if (wire.action === "uninitialised") {
+      console.log("");
+      console.log(`  ! ANTHROPIC_BASE_URL points at port ${wire.wired}, but Iris is on ${boundPort},`);
+      console.log("    and this project has no Iris hook installed. Run:");
+      console.log(`      npx @zero-drift/iris init --port ${boundPort}`);
+    } else if (wire.action === "failed") {
+      console.log("");
+      console.log(`  ! Could not update ${paths.settingsPath}: ${wire.error}`);
+      console.log(`    Set env.ANTHROPIC_BASE_URL to http://127.0.0.1:${boundPort} by hand.`);
+    } else if (wire.action === "disabled") {
+      console.log("  Settings      IRIS_AUTOWIRE=0 — not touching .claude/settings.json");
+    } else if (wire.action === "external") {
+      console.log(`  Settings      ANTHROPIC_BASE_URL is ${wire.url} — left as set, not a local Iris URL`);
+    } else if (wire.action === "none") {
+      console.log("  Point ANTHROPIC_BASE_URL here — Claude Code is protected.");
+    }
+    console.log("");
+  }
+
+  server.on("error", (err) => {
+    if (err?.code !== "EADDRINUSE") {
+      console.error(`\nIris failed to start: ${err?.message || err}\n`);
+      if (CLI_MODE) process.exit(1);
+      return;
+    }
+    void handlePortInUse();
+  });
+
+  async function handlePortInUse() {
+    const occupant = await probeIris(boundPort);
+
+    if (occupant && occupant.projectId === paths.projectId) {
+      console.log("");
+      console.log(`Iris is already running for this project on port ${boundPort}.`);
+      console.log(`  UI     http://127.0.0.1:${boundPort}/__monitor`);
+      console.log(`  Guide  http://127.0.0.1:${boundPort}/__guide`);
+      console.log("");
+      if (CLI_MODE) process.exit(0);
+      return;
+    }
+
+    const who = occupant
+      ? `another Iris instance (project "${occupant.repo || occupant.projectId}")`
+      : "another process";
+
+    if (PORT_EXPLICIT) {
+      console.error("");
+      console.error(`Port ${boundPort} is already in use by ${who}.`);
+      console.error("  You asked for this port explicitly, so Iris will not move on its own.");
+      console.error(`  Free it, or start on another port:  PROXY_PORT=${boundPort + 1} npx @zero-drift/iris`);
+      console.error("  Iris re-points this project's settings.json to whichever port it binds.");
+      console.error("");
+      if (CLI_MODE) process.exit(1);
+      return;
+    }
+
+    const next = await findFreePort(boundPort + 1, 20);
+    if (next == null) {
+      console.error("");
+      console.error(`Port ${boundPort} is in use by ${who}, and no free port was found in ${boundPort + 1}-${boundPort + 20}.`);
+      console.error("  Set one explicitly:  PROXY_PORT=9100 npx @zero-drift/iris");
+      console.error("");
+      if (CLI_MODE) process.exit(1);
+      return;
+    }
+
+    console.log("");
+    console.log(`Port ${boundPort} is in use by ${who} — starting on ${next} instead.`);
+    boundPort = next;
+    server.listen(next, "127.0.0.1");
+  }
+
+  server.on("listening", () => {
+    boundPort = /** @type {any} */ (server.address())?.port ?? boundPort;
+    banner();
 
     historyLedger.load();
     actionLedger.load();
@@ -597,6 +782,8 @@ export function startServer(opts = {}) {
       console.log(`Action ledger: ${actionLedger.actions.length} recorded actions`);
     });
   });
+
+  server.listen(PORT, "127.0.0.1");
 
   if (opts.handleSignals !== false) {
     for (const sig of ["SIGINT", "SIGTERM"]) {
@@ -609,5 +796,15 @@ export function startServer(opts = {}) {
     }
   }
 
-  return { server, paths, port: PORT, events, session };
+  return {
+    server,
+    paths,
+    port: PORT,
+    /** Port actually bound — differs from `port` when Iris fell back. */
+    get boundPort() {
+      return boundPort;
+    },
+    events,
+    session,
+  };
 }

@@ -21,15 +21,18 @@ function usage() {
 See what Claude carries. Control what Claude can do.
 
 Usage:
-  iris                     Start the proxy (http://127.0.0.1:8787)
-  iris init                Configure this project for Claude Code
+  iris [--port N]          Start the proxy (http://127.0.0.1:8787)
+  iris init [--port N]     Configure this project for Claude Code
   iris hook                Run as Claude Code Pre/PostToolUse hook
   iris version
 
   After start: UI /__monitor  ·  guide /__guide
 
+Running more than one project? Start each in its own directory. If 8787 is
+taken, Iris moves to the next free port and tells you to re-run init there.
+
 Env:
-  PROXY_PORT              Listen port (default 8787)
+  PROXY_PORT              Listen port (default 8787; explicit = never auto-moved)
   ANTHROPIC_PROXY_TARGET  Upstream (default https://api.anthropic.com)
   PROXY_REDACT=0          Disable at-rest redaction
   PROXY_REDACT_WIRE=1     Enable wire redaction + rehydration
@@ -37,6 +40,7 @@ Env:
   IRIS_HOME               Override ~/.iris
   IRIS_ENVELOPE_PATH      Authority envelope (default: ~/.iris/projects/<id>/sessions/authority.json)
   IRIS_ADAPTER            Host adapter (default: claude-code)
+  IRIS_AUTOWIRE=0         Do not keep ANTHROPIC_BASE_URL on the bound port
                           UI: open /__monitor?iris_token=… once when IRIS_UI_TOKEN is set
 `);
 }
@@ -44,30 +48,82 @@ Env:
 const args = process.argv.slice(2);
 const cmd = args[0];
 
+/** `--port 8788` or `--port=8788`; returns null when absent or not a number. */
+function portArg(argv) {
+  const i = argv.findIndex((a) => a === "--port" || a === "-p");
+  if (i !== -1 && argv[i + 1] && /^\d+$/.test(argv[i + 1])) return Number(argv[i + 1]);
+  const inline = argv.find((a) => /^--port=\d+$/.test(a));
+  return inline ? Number(inline.split("=")[1]) : null;
+}
+
+/**
+ * Find a running Iris that is already serving this project, so `init` writes
+ * the port that instance actually bound rather than assuming 8787.
+ * @param {string} projectRoot
+ */
+async function discoverPort(projectRoot) {
+  const candidates = Array.from({ length: 12 }, (_, i) => 8787 + i);
+  const metas = await Promise.all(
+    candidates.map(async (port) => {
+      try {
+        const res = await fetch(`http://127.0.0.1:${port}/__meta`, {
+          signal: AbortSignal.timeout(400),
+        });
+        if (!res.ok) return null;
+        const meta = await res.json();
+        return meta?.projectId ? { port, meta } : null;
+      } catch {
+        // FALLBACK-GUARD: INTENTIONAL — nothing listening, or not Iris
+        return null;
+      }
+    })
+  );
+  const live = metas.filter(Boolean);
+  const mine = live.find((m) => m.meta.cwd === projectRoot);
+  return mine ? mine.port : null;
+}
+
 if (!cmd || cmd === "start" || cmd === "run") {
-  startServer({});
+  const port = portArg(args);
+  startServer(port ? { port } : {});
 } else if (cmd === "init") {
+  const cwd = process.cwd();
+  const explicit = portArg(args);
+  const discovered = explicit == null ? await discoverPort(cwd) : null;
+  const port = explicit ?? discovered ?? Number(process.env.PROXY_PORT || 8787);
+
   const adapter = createClaudeAdapter({
-    settingsPath: join(process.cwd(), ".claude", "settings.json"),
+    settingsPath: join(cwd, ".claude", "settings.json"),
+    port,
   });
-  const result = adapter.install({ cwd: process.cwd() });
+  const result = adapter.install({ cwd, port });
+
+  const baseUrlNote = {
+    set: "written",
+    repointed: `re-pointed from ${result.previousBaseUrl}`,
+    kept: "already correct",
+    external: `left as ${result.previousBaseUrl} — not a local Iris URL, so Iris did not touch it`,
+  }[result.baseUrlAction] || "written";
+
   console.log(`
 Iris init complete (Claude Code)
 
   Project     ${result.name} (${result.id})
   Settings    ${result.settingsPath}
-  Proxy URL   ${result.proxyUrl}
+  Proxy URL   ${result.proxyUrl}  (${baseUrlNote})${
+    discovered ? `\n  Port        ${port} — discovered a running Iris for this project` : ""
+  }
   Envelope    ${result.envelopePath}
   Guard hook  ${result.hookPath}
 
 Bare tool denies remove schemas from Claude's context.
 PreToolUse gates execution against the Task Authority Envelope.
-
+${result.baseUrlAction === "external" ? "\n! Claude Code is NOT pointed at Iris. Set env.ANTHROPIC_BASE_URL yourself if that is not deliberate.\n" : ""}
 Start:
-  npx @zero-drift/iris
+  npx @zero-drift/iris${port === 8787 ? "" : ` --port ${port}`}
 
-UI:    http://127.0.0.1:8787/__monitor
-Guide: http://127.0.0.1:8787/__guide
+UI:    http://127.0.0.1:${port}/__monitor
+Guide: http://127.0.0.1:${port}/__guide
 `);
 } else if (cmd === "hook") {
   const { spawnSync } = await import("node:child_process");
