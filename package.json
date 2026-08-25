@@ -1,0 +1,49 @@
+{
+  "name": "@zero-drift/iris",
+  "version": "1.0.0",
+  "description": "Local context, cost, policy and execution control for Claude Code. Remove unused tool context, gate risky actions, and investigate every session.",
+  "type": "module",
+  "bin": {
+    "iris": "./bin/iris.mjs"
+  },
+  "main": "./src/runtime/server.mjs",
+  "files": [
+    "bin/",
+    "src/",
+    "ui/",
+    "LICENSE",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "start": "node bin/iris.mjs",
+    "init": "node bin/iris.mjs init",
+    "test": "node tests/run.mjs",
+    "pack:check": "npm pack --dry-run"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "iris",
+    "claude",
+    "claude-code",
+    "anthropic",
+    "proxy",
+    "context",
+    "security",
+    "observability"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/csehammad/iris-control-plane.git"
+  },
+  "homepage": "https://github.com/csehammad/iris-control-plane#readme",
+  "bugs": {
+    "url": "https://github.com/csehammad/iris-control-plane/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT"
+}

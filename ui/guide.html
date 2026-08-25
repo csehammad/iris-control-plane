@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Iris for Claude Code — Guide</title>
+<style>
+:root{
+  --paper:#F4F6FB; --surface:#fff; --ink:#131826; --ink2:#59637A; --ink3:#8B95AA;
+  --line:#E1E6EF; --line2:#CDD5E2;
+  --wire:#1B4DFF; --wire-soft:#E8EDFF; --wire-deep:#1236C9;
+  --jade:#07785E; --jade-soft:#E1F4EE;
+  --amber:#A75A06; --amber-soft:#FDF0DF;
+  --rust:#BB332A; --rust-soft:#FCE9E7;
+  --violet:#6435DE; --violet-soft:#EFEAFE;
+  --rail:#1C1D1F; --rail-2:#2A2B2F; --rail-line:#3E3F44; --rail-text:#D2D3D6; --rail-mute:#9A9B9F;
+  --ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,"IBM Plex Mono",Consolas,monospace;
+  --r:10px; --r-lg:14px;
+  --sh:0 1px 2px rgba(19,24,38,.06),0 8px 24px -10px rgba(19,24,38,.12);
+  --top:56px; --side:320px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--ui);background:var(--paper);color:var(--ink);font-size:16.5px;line-height:1.62;
+  -webkit-font-smoothing:antialiased;min-height:100vh}
+button,input{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+a{color:var(--wire)}
+:focus-visible{outline:2px solid var(--wire);outline-offset:2px;border-radius:4px}
+.skip{position:absolute;left:-999px;top:8px;background:var(--wire);color:#fff;padding:8px 14px;border-radius:8px;z-index:80}
+.skip:focus{left:8px}
+.mono{font-family:var(--mono);font-size:.92em}
+.k{font-family:var(--mono);font-size:11.5px;padding:2px 6px;border:1px solid var(--line2);border-radius:5px;background:#fff;color:var(--ink2)}
+
+/* ── top bar ───────────────────────────────── */
+.top{position:sticky;top:0;z-index:50;height:var(--top);display:flex;align-items:center;gap:14px;
+  padding:0 16px;background:#fff;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;letter-spacing:-.02em;text-decoration:none;color:var(--ink);flex:none}
+.brand svg{width:28px;height:28px}
+.crumb{font-size:13.5px;color:var(--ink2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.top .spacer{flex:1}
+.btn{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 13px;border-radius:8px;
+  border:1px solid var(--line2);background:#fff;font-size:14px;font-weight:600}
+.btn:hover{background:var(--paper);border-color:var(--ink3)}
+.btn.pri{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.pri:hover{background:#242C40}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--rail-text)}
+.btn.ghost:hover{background:var(--rail-2)}
+.icon-btn{width:36px;height:36px;display:grid;place-items:center;border-radius:8px;color:var(--ink2)}
+.icon-btn:hover{background:var(--paper);color:var(--ink)}
+.menu-btn{display:none}
+
+/* ── shell ─────────────────────────────────── */
+.shell{display:flex;min-height:calc(100vh - var(--top))}
+.rail{width:var(--side);flex:none;background:var(--rail);color:var(--rail-text);display:flex;flex-direction:column;
+  max-height:calc(100vh - var(--top));position:sticky;top:var(--top);overflow:hidden}
+.rail-head{padding:16px 14px 12px;border-bottom:1px solid var(--rail-line)}
+.rail-head h1{font-size:15px;font-weight:700;color:#fff;letter-spacing:-.02em;line-height:1.35}
+.rail-head p{font-size:12.5px;color:var(--rail-mute);margin-top:6px}
+.search{margin-top:12px;display:flex;align-items:center;gap:8px;background:var(--rail-2);border:1px solid var(--rail-line);
+  border-radius:8px;padding:0 10px;height:36px}
+.search input{flex:1;background:transparent;border:0;color:#fff;font-size:13.5px;outline:none;min-width:0}
+.search input::placeholder{color:var(--rail-mute)}
+.curric{flex:1;overflow:auto;padding:10px 0 24px}
+.sec{padding:10px 0 4px}
+.sec-h{width:100%;display:flex;align-items:center;gap:8px;padding:8px 14px;color:#fff;font-size:12.5px;font-weight:700;
+  letter-spacing:.04em;text-transform:uppercase;text-align:left}
+.sec-h:hover{background:rgba(255,255,255,.04)}
+.sec-h .chev{transition:transform .18s;flex:none;margin-left:auto}
+.sec.closed .chev{transform:rotate(-90deg)}
+.sec.closed .lect{display:none}
+.lect{width:100%;display:block;padding:8px 14px 8px 16px;text-align:left;color:var(--rail-text);
+  border-left:3px solid transparent;font-size:13.5px;font-weight:550;line-height:1.35}
+.lect:hover{background:rgba(255,255,255,.05)}
+.lect[aria-current="true"]{background:rgba(27,77,255,.22);color:#fff;border-left-color:var(--wire)}
+
+/* ── main ──────────────────────────────────── */
+.main{flex:1;min-width:0}
+.stage{background:#0E1016;color:#E8EBF2;padding:22px 28px 18px}
+.stage-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:14px}
+.eyebrow{font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8B95AA}
+.stage h2{font-size:22px;font-weight:700;letter-spacing:-.03em;color:#fff}
+.diagram{background:#161922;border:1px solid #2A3144;border-radius:12px;padding:18px;overflow:auto}
+.diagram svg{display:block;max-width:100%;height:auto;margin:0 auto}
+.wrap{max-width:860px;margin:0 auto;padding:28px 28px 100px}
+.lesson h3{font-size:22px;font-weight:700;letter-spacing:-.025em;margin:28px 0 10px;line-height:1.25}
+.lesson h4{font-size:16.5px;font-weight:700;margin:22px 0 8px}
+.lesson p,.lesson li{color:var(--ink)}
+.lesson p{margin:0 0 12px}
+.lesson ul,.lesson ol{margin:0 0 14px 1.2em}
+.lesson li{margin:5px 0}
+.lesson .lede{font-size:18px;color:var(--ink2);max-width:62ch}
+.callout{border:1px solid var(--line);border-left:4px solid var(--wire);background:#fff;border-radius:0 var(--r) var(--r) 0;
+  padding:12px 14px;margin:16px 0;font-size:15px}
+.callout.warn{border-left-color:var(--amber);background:var(--amber-soft)}
+.callout.ok{border-left-color:var(--jade);background:var(--jade-soft)}
+.callout.bad{border-left-color:var(--rust);background:var(--rust-soft)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);padding:14px 16px;box-shadow:0 1px 2px rgba(19,24,38,.05)}
+.card h4{margin-top:0}
+.card .lbl{font-size:11.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px}
+pre,code{font-family:var(--mono)}
+pre{background:#131826;color:#E8EBF2;border-radius:10px;padding:14px 16px;overflow:auto;font-size:13px;line-height:1.5;margin:12px 0 16px}
+code{font-size:.9em}
+p code,li code{background:var(--wire-soft);color:var(--wire-deep);padding:1px 5px;border-radius:4px}
+.steps{counter-reset:st;list-style:none;margin:12px 0 18px;padding:0}
+.steps li{counter-increment:st;position:relative;padding:10px 12px 10px 48px;border:1px solid var(--line);background:#fff;
+  border-radius:10px;margin:8px 0}
+.steps li::before{content:counter(st);position:absolute;left:12px;top:12px;width:24px;height:24px;border-radius:99px;
+  background:var(--wire-soft);color:var(--wire);font-weight:700;font-size:13px;display:grid;place-items:center}
+.kbd-row{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:99px;background:var(--wire-soft);
+  color:var(--wire);font-size:13px;font-weight:600}
+.table{width:100%;border-collapse:collapse;font-size:14.5px;margin:12px 0 18px;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.table th,.table td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+.table th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);background:var(--paper)}
+.table tr:last-child td{border-bottom:0}
+.hidden{display:none !important}
+
+/* flow boxes */
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0 4px}
+.flow .box{background:#1F2433;border:1px solid #3A4258;color:#fff;border-radius:10px;padding:10px 12px;min-width:110px;text-align:center;font-size:13px;font-weight:600}
+.flow .box small{display:block;font-weight:500;color:#9AA3B8;font-size:11px;margin-top:3px}
+.flow .box.iris{background:var(--wire);border-color:var(--wire)}
+.flow .box.ok{background:#0F3D34;border-color:#1A7A64}
+.flow .box.bad{background:#4A1C1A;border-color:#BB332A}
+.flow .arr{color:#8B95AA;font-size:18px}
+
+.scrim{display:none;position:fixed;inset:0;background:rgba(19,24,38,.4);z-index:40}
+@media(max-width:980px){
+  .menu-btn{display:grid}
+  .rail{position:fixed;inset:var(--top) auto 0 0;z-index:45;transform:translateX(-100%);transition:transform .2s}
+  .rail.open{transform:none}
+  .scrim.on{display:block}
+  .grid{grid-template-columns:1fr}
+  .stage,.wrap{padding-left:16px;padding-right:16px}
+}
+@media(prefers-reduced-motion:reduce){
+  *{transition:none !important;animation:none !important}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<header class="top">
+  <button class="icon-btn menu-btn" id="menuBtn" aria-label="Open menu" aria-controls="rail" aria-expanded="false">
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+  </button>
+  <a class="brand" href="#welcome" data-go="welcome">
+    <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+      <circle cx="16" cy="16" r="14.5" fill="#131826"/>
+      <path d="M16 4.5 A11.5 11.5 0 0 1 25.96 10.25 Z" fill="#1B4DFF"/>
+      <path d="M25.96 10.25 A11.5 11.5 0 0 1 25.96 21.75 Z" fill="#6435DE"/>
+      <circle cx="16" cy="16" r="4.6" fill="#fff"/>
+    </svg>
+    Iris
+  </a>
+  <div class="crumb" id="crumb">Guide · What Iris does</div>
+  <div class="spacer"></div>
+  <a class="btn" href="http://127.0.0.1:8787/__monitor" target="_blank" rel="noopener">Open dashboard</a>
+</header>
+
+<div class="scrim" id="scrim" hidden></div>
+
+<div class="shell">
+  <nav class="rail" id="rail" aria-label="Guide">
+    <div class="rail-head">
+      <h1>Iris for Claude Code</h1>
+      <p>See what Claude carries. Kill what you don't need. Control what it can do.</p>
+      <label class="search">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="4.6" stroke="#9A9B9F" stroke-width="1.5"/><path d="M10.5 10.5 14 14" stroke="#9A9B9F" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <input id="q" type="search" placeholder="Search" autocomplete="off">
+      </label>
+    </div>
+    <div class="curric" id="curric"></div>
+  </nav>
+
+  <div class="main">
+    <div class="stage">
+      <div class="stage-top">
+        <div>
+          <div class="eyebrow" id="stageEye">Getting started</div>
+          <h2 id="stageTitle">What Iris does</h2>
+        </div>
+        <span class="pill" id="stageSec">Getting started</span>
+      </div>
+      <div class="diagram" id="stageArt" aria-hidden="true"></div>
+    </div>
+
+    <article class="wrap lesson" id="content" tabindex="-1"></article>
+  </div>
+</div>
+
+<script>
+const SECTIONS=[
+  {id:"iris", title:"Iris", lessons:[
+    {id:"welcome", title:"What Iris does"},
+    {id:"install", title:"Install"},
+    {id:"init", title:"What init changes"},
+  ]},
+  {id:"ctx", title:"Context", lessons:[
+    {id:"payload", title:"The payload behind every prompt"},
+    {id:"tax", title:"The Token Tax"},
+    {id:"context", title:"Context view"},
+  ]},
+  {id:"opt", title:"Optimize", lessons:[
+    {id:"optimize", title:"Unused schemas"},
+    {id:"vs-perm", title:"Context vs permission"},
+  ]},
+  {id:"grd", title:"Guard", lessons:[
+    {id:"guard", title:"Task authority"},
+    {id:"allow", title:"Allow, Ask, Deny"},
+    {id:"limits", title:"Strengths and limits"},
+  ]},
+  {id:"rec", title:"Flight Recorder", lessons:[
+    {id:"flight", title:"What actually ran"},
+  ]},
+  {id:"dash", title:"Dashboard", lessons:[
+    {id:"overview", title:"Overview"},
+    {id:"spend", title:"Spend"},
+    {id:"traffic", title:"Traffic"},
+    {id:"header", title:"Time range"},
+  ]},
+  {id:"ref", title:"Reference", lessons:[
+    {id:"local", title:"Local-first"},
+    {id:"architecture", title:"Architecture"},
+    {id:"rules", title:"Rules and privacy"},
+    {id:"cheatsheet", title:"Keys, CLI, env"},
+  ]},
+];
+const ALIAS={
+  "first-run":"install",
+  request:"payload",
+  stores:"local",
+  trim:"optimize",
+  lock:"guard",
+  incident:"traffic",
+  usecases:"welcome",
+  not:"limits",
+};
+const LESSONS=SECTIONS.flatMap(s=>s.lessons.map(l=>({...l, section:s.title, sectionId:s.id})));
+const $=s=>document.querySelector(s);
+
+const ART={
+welcome:`<svg viewBox="0 0 920 220" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Iris sits between Claude Code and Anthropic">
+  <rect x="20" y="70" width="180" height="80" rx="12" fill="#1F2433" stroke="#3A4258"/>
+  <text x="110" y="104" text-anchor="middle" fill="#fff" font-size="15" font-family="system-ui" font-weight="700">Claude Code</text>
+  <text x="110" y="126" text-anchor="middle" fill="#9AA3B8" font-size="12" font-family="system-ui">your terminal agent</text>
+  <path d="M210 110h70" stroke="#8B95AA" stroke-width="2"/><polygon points="280,110 268,104 268,116" fill="#8B95AA"/>
+  <rect x="290" y="50" width="220" height="120" rx="14" fill="#1B4DFF"/>
+  <text x="400" y="92" text-anchor="middle" fill="#fff" font-size="18" font-family="system-ui" font-weight="700">Iris :8787</text>
+  <text x="400" y="114" text-anchor="middle" fill="#C9D4FF" font-size="12" font-family="system-ui">proxy · Guard · ledger · UI</text>
+  <text x="400" y="136" text-anchor="middle" fill="#C9D4FF" font-size="12" font-family="system-ui">127.0.0.1 only</text>
+  <path d="M510 110h70" stroke="#8B95AA" stroke-width="2"/><polygon points="580,110 568,104 568,116" fill="#8B95AA"/>
+  <rect x="590" y="70" width="200" height="80" rx="12" fill="#1F2433" stroke="#3A4258"/>
+  <text x="690" y="104" text-anchor="middle" fill="#fff" font-size="15" font-family="system-ui" font-weight="700">Anthropic API</text>
+  <text x="690" y="126" text-anchor="middle" fill="#9AA3B8" font-size="12" font-family="system-ui">model + usage</text>
+  <path d="M400 170v22" stroke="#8B95AA" stroke-width="2"/>
+  <rect x="310" y="192" width="180" height="22" rx="6" fill="#161922" stroke="#3A4258"/>
+  <text x="400" y="207" text-anchor="middle" fill="#C9D4FF" font-size="11" font-family="system-ui">dashboard /__monitor</text>
+</svg>`,
+install:`<svg viewBox="0 0 920 200" fill="none"><text x="40" y="36" fill="#9AA3B8" font-size="12" font-family="system-ui" letter-spacing="2">FROM NPM</text>
+  ${[["1","npx @zero-drift/iris","leave this running"],["2","npx @zero-drift/iris init","in the Claude Code repo"],["3","restart Claude Code","picks up BASE_URL"],["4","open :8787","dashboard + /__guide"]].map(([n,a,b],i)=>{
+    const x=40+i*220; return `<rect x="${x}" y="56" width="200" height="110" rx="12" fill="#1F2433" stroke="#3A4258"/>
+    <circle cx="${x+28}" cy="86" r="14" fill="#1B4DFF"/><text x="${x+28}" y="91" text-anchor="middle" fill="#fff" font-size="13" font-family="system-ui" font-weight="700">${n}</text>
+    <text x="${x+18}" y="118" fill="#fff" font-size="12" font-family="ui-monospace,monospace">${a}</text>
+    <text x="${x+18}" y="142" fill="#9AA3B8" font-size="12" font-family="system-ui">${b}</text>`;
+  }).join("")}</svg>`,
+header:`<svg viewBox="0 0 920 160" fill="none">
+  <rect x="40" y="40" width="840" height="80" rx="14" fill="#1F2433" stroke="#3A4258"/>
+  <text x="64" y="86" fill="#fff" font-size="15" font-family="system-ui" font-weight="700">Iris</text>
+  <rect x="200" y="58" width="520" height="44" rx="10" fill="#161922"/>
+  ${[["Last hour",260],["Today",380],["This week",480],["This month",600],["All",720]].map(([l,x],i)=>
+    `<rect x="${x-40}" y="66" width="${l.length*8.2+18}" height="28" rx="7" fill="${i===1?"#fff":"transparent"}"/>
+     <text x="${x}" y="85" text-anchor="middle" fill="${i===1?"#131826":"#9AA3B8"}" font-size="12" font-family="system-ui" font-weight="600">${l}</text>`).join("")}
+  <text x="40" y="148" fill="#9AA3B8" font-size="12" font-family="system-ui">Applies to Overview, Spend, Traffic, Context, Guard decisions, and Flight Recorder.</text>
+</svg>`,
+init:`<svg viewBox="0 0 920 180" fill="none">
+  ${[["ANTHROPIC_BASE_URL","Claude Code → Iris → Anthropic"],["permissions.deny","bare names drop schemas"],["PreToolUse / PostToolUse","Guard before, record after"]].map(([a,b],i)=>{
+    const y=24+i*50; return `<rect x="40" y="${y}" width="840" height="42" rx="10" fill="#1F2433" stroke="#3A4258"/>
+    <text x="60" y="${y+26}" fill="#fff" font-size="14" font-family="ui-monospace,monospace">${a}</text>
+    <text x="480" y="${y+26}" fill="#9AA3B8" font-size="13" font-family="system-ui">${b}</text>`;
+  }).join("")}
+</svg>`,
+payload:`<svg viewBox="0 0 920 150" fill="none">
+  <rect x="30" y="36" width="860" height="36" rx="8" fill="#2A3148"/>
+  <rect x="30" y="36" width="160" height="36" rx="8" fill="#1B4DFF"/>
+  <rect x="190" y="36" width="280" height="36" fill="#D08700"/>
+  <rect x="470" y="36" width="420" height="36" fill="#6435DE"/>
+  <text x="50" y="60" fill="#fff" font-size="13" font-family="system-ui">SYSTEM</text>
+  <text x="250" y="60" fill="#131826" font-size="13" font-family="system-ui" font-weight="700">TOOLS</text>
+  <text x="490" y="60" fill="#fff" font-size="13" font-family="system-ui">CONVERSATION</text>
+  <text x="30" y="112" fill="#9AA3B8" font-size="14" font-family="system-ui">Your prompt is only one part of the request. Unused tool schemas still sit in context.</text>
+</svg>`,
+tax:`<svg viewBox="0 0 920 180" fill="none">
+  <text x="80" y="36" fill="#9AA3B8" font-size="12" font-family="system-ui" letter-spacing="2">BEFORE</text>
+  <rect x="80" y="50" width="70" height="90" rx="6" fill="#1B4DFF"/>
+  <rect x="160" y="50" width="280" height="90" rx="6" fill="#D08700"/>
+  <text x="250" y="100" text-anchor="middle" fill="#131826" font-size="14" font-family="system-ui" font-weight="700">28.0k baseline</text>
+  <text x="520" y="36" fill="#9AA3B8" font-size="12" font-family="system-ui" letter-spacing="2">AFTER</text>
+  <rect x="520" y="50" width="70" height="90" rx="6" fill="#1B4DFF"/>
+  <rect x="600" y="50" width="70" height="90" rx="6" fill="#07785E"/>
+  <text x="635" y="100" text-anchor="middle" fill="#fff" font-size="14" font-family="system-ui" font-weight="700">5.6k</text>
+  <text x="80" y="168" fill="#9AA3B8" font-size="13" font-family="system-ui">One setup: 22.4k fewer tokens in starting context on each model call. Yours will differ.</text>
+</svg>`,
+architecture:`<svg viewBox="0 0 920 280" fill="none">
+  <text x="460" y="28" text-anchor="middle" fill="#9AA3B8" font-size="12" font-family="system-ui" letter-spacing="2">CLAUDE CODE ADAPTER · v1</text>
+  <rect x="40" y="50" width="200" height="70" rx="12" fill="#1F2433" stroke="#3A4258"/><text x="140" y="80" text-anchor="middle" fill="#fff" font-size="14" font-family="system-ui" font-weight="700">Claude Code</text><text x="140" y="100" text-anchor="middle" fill="#9AA3B8" font-size="11" font-family="system-ui">ANTHROPIC_BASE_URL</text>
+  <path d="M240 85h70" stroke="#1B4DFF" stroke-width="2"/><polygon points="310,85 298,79 298,91" fill="#1B4DFF"/>
+  <rect x="320" y="40" width="280" height="200" rx="14" fill="#1B4DFF"/>
+  <text x="460" y="72" text-anchor="middle" fill="#fff" font-size="16" font-family="system-ui" font-weight="700">Iris core</text>
+  <text x="460" y="96" text-anchor="middle" fill="#C9D4FF" font-size="12" font-family="system-ui">context · billing · policy</text>
+  <text x="460" y="116" text-anchor="middle" fill="#C9D4FF" font-size="12" font-family="system-ui">authority · forensics · UI</text>
+  <rect x="350" y="136" width="220" height="80" rx="10" fill="#1236C9"/>
+  <text x="460" y="168" text-anchor="middle" fill="#fff" font-size="13" font-family="system-ui" font-weight="700">Claude adapter</text>
+  <text x="460" y="190" text-anchor="middle" fill="#C9D4FF" font-size="11" font-family="system-ui">proxy · hooks · permissions</text>
+  <path d="M600 85h70" stroke="#1B4DFF" stroke-width="2"/><polygon points="670,85 658,79 658,91" fill="#1B4DFF"/>
+  <rect x="680" y="50" width="200" height="70" rx="12" fill="#1F2433" stroke="#3A4258"/><text x="780" y="80" text-anchor="middle" fill="#fff" font-size="14" font-family="system-ui" font-weight="700">Anthropic</text><text x="780" y="100" text-anchor="middle" fill="#9AA3B8" font-size="11" font-family="system-ui">byte-identical unless redact-wire</text>
+  <path d="M140 120v40h180" stroke="#6435DE" stroke-width="2" fill="none"/>
+  <text x="40" y="178" fill="#C4B5FD" font-size="11" font-family="system-ui">PreToolUse hook → Guard</text>
+  <text x="40" y="230" fill="#9AA3B8" font-size="12" font-family="system-ui">HTTP goes through the proxy. Tool execution goes through the PreToolUse hook. Same process, two entry points.</text>
+</svg>`,
+"vs-perm":`<svg viewBox="0 0 920 160" fill="none">
+  <rect x="40" y="36" width="400" height="90" rx="12" fill="#1F2433" stroke="#3A4258"/>
+  <text x="240" y="74" text-anchor="middle" fill="#fff" font-size="16" font-family="system-ui" font-weight="700">Optimize</text>
+  <text x="240" y="98" text-anchor="middle" fill="#9AA3B8" font-size="13" font-family="system-ui">what Claude needs in context</text>
+  <rect x="480" y="36" width="400" height="90" rx="12" fill="#1F2433" stroke="#3A4258"/>
+  <text x="680" y="74" text-anchor="middle" fill="#fff" font-size="16" font-family="system-ui" font-weight="700">Guard</text>
+  <text x="680" y="98" text-anchor="middle" fill="#9AA3B8" font-size="13" font-family="system-ui">what Claude is allowed to do</text>
+</svg>`,
+allow:`<svg viewBox="0 0 920 180" fill="none">
+  <rect x="40" y="40" width="260" height="80" rx="12" fill="#0F3D34"/><text x="170" y="74" text-anchor="middle" fill="#6EE7B7" font-size="16" font-family="system-ui" font-weight="700">ALLOW</text><text x="170" y="96" text-anchor="middle" fill="#9AA3B8" font-size="12" font-family="system-ui">Read src/server.js</text>
+  <rect x="330" y="40" width="260" height="80" rx="12" fill="#3D2A12"/><text x="460" y="74" text-anchor="middle" fill="#F5C16C" font-size="16" font-family="system-ui" font-weight="700">ASK</text><text x="460" y="96" text-anchor="middle" fill="#9AA3B8" font-size="12" font-family="system-ui">unfamiliar command</text>
+  <rect x="620" y="40" width="260" height="80" rx="12" fill="#4A1C1A"/><text x="750" y="74" text-anchor="middle" fill="#FCA5A5" font-size="16" font-family="system-ui" font-weight="700">DENY</text><text x="750" y="96" text-anchor="middle" fill="#9AA3B8" font-size="12" font-family="system-ui">write outside project</text>
+  <text x="40" y="156" fill="#9AA3B8" font-size="13" font-family="system-ui">Hard denies are enforced by the hook, not left to the model to interpret.</text>
+</svg>`,
+limits:`<svg viewBox="0 0 920 140" fill="none">
+  <text x="40" y="50" fill="#E8EBF2" font-size="16" font-family="system-ui">Path containment and authority files are reliable. Arbitrary shell is not.</text>
+  <text x="40" y="84" fill="#9AA3B8" font-size="14" font-family="system-ui">Unrecognized commands ASK. A command written to dodge the recognizers can still get through.</text>
+</svg>`,
+local:`<svg viewBox="0 0 920 180" fill="none">
+  <text x="460" y="36" text-anchor="middle" fill="#9AA3B8" font-size="12" font-family="system-ui" letter-spacing="2">127.0.0.1:8787</text>
+  <rect x="80" y="60" width="180" height="70" rx="12" fill="#1F2433" stroke="#3A4258"/><text x="170" y="102" text-anchor="middle" fill="#fff" font-size="14" font-family="system-ui" font-weight="700">Claude Code</text>
+  <path d="M260 95h80" stroke="#8B95AA" stroke-width="2"/><polygon points="340,95 328,89 328,101" fill="#8B95AA"/>
+  <rect x="350" y="50" width="220" height="90" rx="14" fill="#1B4DFF"/><text x="460" y="92" text-anchor="middle" fill="#fff" font-size="16" font-family="system-ui" font-weight="700">Iris :8787</text><text x="460" y="114" text-anchor="middle" fill="#C9D4FF" font-size="12" font-family="system-ui">local only</text>
+  <path d="M570 95h80" stroke="#8B95AA" stroke-width="2"/><polygon points="650,95 638,89 638,101" fill="#8B95AA"/>
+  <rect x="660" y="60" width="180" height="70" rx="12" fill="#1F2433" stroke="#3A4258"/><text x="750" y="102" text-anchor="middle" fill="#fff" font-size="14" font-family="system-ui" font-weight="700">Anthropic</text>
+</svg>`,
+rules:`<svg viewBox="0 0 920 140" fill="none">
+  <text x="40" y="50" fill="#E8EBF2" font-size="16" font-family="system-ui">Byte-identical upstream. Unknown models unpriced. Hard denies not model-overridable.</text>
+  <text x="40" y="84" fill="#9AA3B8" font-size="14" font-family="system-ui">Discovery is not permission. Bind 127.0.0.1. One authority envelope.</text>
+</svg>`,
+overview:`<svg viewBox="0 0 920 150" fill="none">
+  <rect x="30" y="36" width="860" height="28" rx="6" fill="#2A3148"/>
+  <rect x="30" y="36" width="220" height="28" rx="6" fill="#1B4DFF"/>
+  <rect x="250" y="36" width="180" height="28" fill="#D08700"/>
+  <rect x="430" y="36" width="460" height="28" rx="0" fill="#6435DE"/>
+  <text x="40" y="56" fill="#fff" font-size="12" font-family="system-ui">System</text>
+  <text x="260" y="56" fill="#131826" font-size="12" font-family="system-ui">Tool schemas</text>
+  <text x="440" y="56" fill="#fff" font-size="12" font-family="system-ui">Conversation</text>
+  <text x="30" y="100" fill="#9AA3B8" font-size="13" font-family="system-ui">The ribbon is the last request in the selected time range, drawn to scale. Hover a segment for tokens and projected cost.</text>
+  <text x="30" y="124" fill="#9AA3B8" font-size="13" font-family="system-ui">Ledger rows from older days do not keep payload text — KPIs still do.</text>
+</svg>`,
+spend:`<svg viewBox="0 0 920 140" fill="none">
+  ${[18,42,28,70,55,90,40,62,48,80,35,95].map((h,i)=>`<rect x="${60+i*70}" y="${110-h}" width="44" height="${h}" rx="4" fill="${i===11?"#1B4DFF":"#3A4258"}"/>`).join("")}
+  <text x="60" y="132" fill="#9AA3B8" font-size="12" font-family="system-ui">Cost per day in the header window, from API usage.</text>
+</svg>`,
+traffic:`<svg viewBox="0 0 920 150" fill="none">
+  <rect x="40" y="24" width="840" height="100" rx="12" fill="#1F2433" stroke="#3A4258"/>
+  <text x="60" y="52" fill="#9AA3B8" font-size="12" font-family="ui-monospace,monospace">CALL   TIME      SHIPPED    LATENCY     CACHE    COST</text>
+  <text x="60" y="78" fill="#E8EBF2" font-size="13" font-family="ui-monospace,monospace">#12    14:02:11   48.2k      1.8s        91%      $0.14</text>
+  <text x="60" y="102" fill="#E8EBF2" font-size="13" font-family="ui-monospace,monospace">#13    14:03:04   51.1k      12.4s       miss     $0.41   ← click to inspect</text>
+</svg>`,
+context:`<svg viewBox="0 0 920 160" fill="none">
+  <text x="40" y="36" fill="#9AA3B8" font-size="12" font-family="system-ui">EVERY TURN RE-SENDS</text>
+  <rect x="40" y="50" width="280" height="70" rx="10" fill="#1B4DFF"/><text x="180" y="82" text-anchor="middle" fill="#fff" font-size="14" font-family="system-ui" font-weight="700">System + tools</text><text x="180" y="102" text-anchor="middle" fill="#C9D4FF" font-size="12" font-family="system-ui">fixed prefix</text>
+  <rect x="340" y="50" width="540" height="70" rx="10" fill="#6435DE"/><text x="610" y="82" text-anchor="middle" fill="#fff" font-size="14" font-family="system-ui" font-weight="700">Conversation</text><text x="610" y="102" text-anchor="middle" fill="#DDD6FE" font-size="12" font-family="system-ui">grows with the session</text>
+  <text x="40" y="148" fill="#9AA3B8" font-size="13" font-family="system-ui">Trim tools to shrink the prefix. Cache reads bill that prefix at ~10% of input after the first write.</text>
+</svg>`,
+optimize:`<svg viewBox="0 0 920 160" fill="none">
+  ${["See unused schema","Toggle off (stage)","Publish changes","Next session: schema gone"].map((t,i)=>{
+    const x=30+i*225; return `<rect x="${x}" y="40" width="210" height="80" rx="12" fill="${i===3?"#0F3D34":"#1F2433"}" stroke="${i===3?"#1A7A64":"#3A4258"}"/>
+    <text x="${x+16}" y="74" fill="#fff" font-size="14" font-family="system-ui" font-weight="600">${t}</text>
+    <text x="${x+16}" y="98" fill="#9AA3B8" font-size="12" font-family="system-ui">${["Optimize tab","not written yet","settings.json deny","out of context"][i]}</text>`;
+  }).join("")}
+</svg>`,
+guard:`<svg viewBox="0 0 920 200" fill="none">
+  <rect x="40" y="40" width="200" height="90" rx="12" fill="#1F2433" stroke="#3A4258"/><text x="140" y="80" text-anchor="middle" fill="#fff" font-size="14" font-family="system-ui" font-weight="700">PreToolUse</text><text x="140" y="102" text-anchor="middle" fill="#9AA3B8" font-size="12" font-family="system-ui">hook fires</text>
+  <path d="M240 85h50" stroke="#8B95AA" stroke-width="2"/>
+  <rect x="300" y="40" width="220" height="90" rx="12" fill="#1B4DFF"/><text x="410" y="80" text-anchor="middle" fill="#fff" font-size="14" font-family="system-ui" font-weight="700">Envelope</text><text x="410" y="102" text-anchor="middle" fill="#C9D4FF" font-size="12" font-family="system-ui">may / may not</text>
+  <path d="M520 70h40" stroke="#07785E" stroke-width="2"/><path d="M520 85h40" stroke="#A75A06" stroke-width="2"/><path d="M520 100h40" stroke="#BB332A" stroke-width="2"/>
+  <rect x="580" y="30" width="140" height="36" rx="8" fill="#0F3D34"/><text x="650" y="53" text-anchor="middle" fill="#6EE7B7" font-size="13" font-family="system-ui" font-weight="700">Allow</text>
+  <rect x="580" y="74" width="140" height="36" rx="8" fill="#3D2A12"/><text x="650" y="97" text-anchor="middle" fill="#F5C16C" font-size="13" font-family="system-ui" font-weight="700">Ask</text>
+  <rect x="580" y="118" width="140" height="36" rx="8" fill="#4A1C1A"/><text x="650" y="141" text-anchor="middle" fill="#FCA5A5" font-size="13" font-family="system-ui" font-weight="700">Block</text>
+  <text x="40" y="180" fill="#9AA3B8" font-size="13" font-family="system-ui">A tool listed in context can still be blocked here. Hard denies ignore the model’s request to proceed.</text>
+</svg>`,
+flight:`<svg viewBox="0 0 920 180" fill="none">
+  ${[["12:41:02","Read","ALLOW","#6EE7B7"],["12:41:04","Grep","ALLOW","#6EE7B7"],["12:41:08","Bash","ALLOW","#6EE7B7"],["12:41:16","Write","ASK","#F5C16C"],["12:41:21","Bash","DENY","#FCA5A5"]].map(([t,n,d,c],i)=>{
+    const y=28+i*28; return `<text x="48" y="${y+4}" fill="#9AA3B8" font-size="13" font-family="ui-monospace,monospace">${t}</text>
+    <text x="180" y="${y+4}" fill="#E8EBF2" font-size="14" font-family="system-ui" font-weight="600">${n}</text>
+    <text x="320" y="${y+4}" fill="${c}" font-size="13" font-family="ui-monospace,monospace">${d}</text>`;
+  }).join("")}
+</svg>`,
+cheatsheet:`<svg viewBox="0 0 920 120" fill="none"><text x="40" y="50" fill="#E8EBF2" font-size="18" font-family="ui-monospace,monospace">1–7  views    ⌘K  palette    Publish    Accept envelope</text>
+  <text x="40" y="84" fill="#9AA3B8" font-size="14" font-family="system-ui">Bind 127.0.0.1 · unknown models stay unpriced · discovery ≠ authority</text></svg>`,
+};
+
+const HTML={
+welcome:`
+<p class="lede">See what Claude carries. Kill what you don't need. Control what it can do.</p>
+<p>Iris is a local observability and guardrail layer for Claude Code. It runs between Claude Code and Anthropic on <span class="mono">127.0.0.1</span>. From there it can show you what is being sent with each request, which tools are taking up context, what Claude actually uses, and what actions it is allowed to take.</p>
+<pre>Claude Code  →  Iris  →  Anthropic
+                  │
+                  ├── Inspect context
+                  ├── Remove unused tool schemas
+                  ├── Apply Guard rules
+                  └── Record what ran</pre>
+<p>The npm package is <span class="mono">@zero-drift/iris</span>. The open-source version does not need an Iris-hosted service.</p>
+<p>The useful question changes as you work:</p>
+<ul>
+  <li>What is Claude carrying into this request?</li>
+  <li>Does it need all of that?</li>
+  <li>Is this action inside the task's authority?</li>
+  <li>What actually happened during the session?</li>
+</ul>
+`,
+install:`
+<p>Requirements: Node.js 18+, Claude Code, and an Anthropic account Claude Code can already use.</p>
+<p>Start Iris:</p>
+<pre>npx @zero-drift/iris</pre>
+<p>Then run the initializer from the project you want to use with Iris (the folder that contains <span class="mono">.claude/</span>):</p>
+<pre>npx @zero-drift/iris init</pre>
+<p>Restart Claude Code or open a fresh session. Then open:</p>
+<pre>http://127.0.0.1:8787</pre>
+<p>This guide is at <span class="mono">http://127.0.0.1:8787/__guide</span>. Use Claude Code normally. Iris starts filling in once traffic passes through it.</p>
+<p>Leave the Iris process running. If it is down, Claude Code cannot reach the API because <span class="mono">ANTHROPIC_BASE_URL</span> still points at localhost.</p>
+<p>From this repository:</p>
+<pre>cd iris
+npm start</pre>
+<p>Then <span class="mono">npx @zero-drift/iris init</span> from the project root, same as above. Use the IPv4 address. Iris does not listen on IPv6 <span class="mono">localhost</span>.</p>
+`,
+init:`
+<p>Iris uses Claude Code features that already exist. Re-running <span class="mono">init</span> does not wipe your existing deny list.</p>
+<h3>ANTHROPIC_BASE_URL</h3>
+<p>Claude Code is pointed at the local Iris proxy:</p>
+<pre>Claude Code → Iris → Anthropic</pre>
+<p>That gives Iris access to the real request and usage information. It writes <span class="mono">ANTHROPIC_BASE_URL=http://127.0.0.1:8787</span> into <span class="mono">.claude/settings.json</span>.</p>
+<h3>permissions.deny</h3>
+<p>When you publish an Optimize change, Iris can add bare tool names here so Claude Code stops including those tool schemas.</p>
+<h3>PreToolUse / PostToolUse</h3>
+<p>The hooks let Guard evaluate an action before it runs and let Iris record the result afterward. Init installs <span class="mono">node "&lt;pkg&gt;/bin/iris.mjs" hook</span> and sets <span class="mono">IRIS_HOME</span> and <span class="mono">IRIS_ENVELOPE_PATH</span> so the hook and the dashboard open the same authority file.</p>
+`,
+payload:`
+<p>When you send Claude Code a message, your prompt is only one part of the request.</p>
+<p>Claude may also receive the system prompt, tool definitions, MCP schemas, previous messages, tool results, and project instructions.</p>
+<p>Some of that needs to be there. Some of it doesn't.</p>
+<p>Tool definitions are a good example. Claude needs the schema for a tool before it can call it, so the schema sits in context even if that tool never gets used.</p>
+<p>That means an unused tool can still cost context on every request.</p>
+<pre>┌──────────────────────────────────────────────┐
+│ SYSTEM │       TOOLS       │ CONVERSATION   │
+└──────────────────────────────────────────────┘</pre>
+`,
+tax:`
+<p>This was the starting context from one Claude Code setup:</p>
+<pre>BEFORE
+
+System prompt       2.4k
+System tools       25.6k
+────────────────────────
+Baseline           28.0k</pre>
+<p>After removing optional tools and features that weren't being used:</p>
+<pre>AFTER
+
+System prompt       2.4k
+System tools        3.2k
+────────────────────────
+Baseline            5.6k</pre>
+<p>That's <strong>22.4k fewer tokens in the starting context on each model call</strong> for that setup.</p>
+<p>Your numbers will be different. Iris watches your own traffic and shows you where the context is going.</p>
+`,
+context:`
+<p>Key <span class="k">4</span>. Iris sees the requests Claude Code sends through the local proxy and breaks the latest one down by source: system prompt, tool schemas, conversation.</p>
+<p>You can inspect API usage, caching, latency, and failed requests from here and from Traffic. This gives you something concrete to work from before changing your configuration.</p>
+<p>The system + tools prefix is resent every turn. Cached system blocks read back at cache-read rate after the first write (about 10% of input for a standard cache read). Trim tools to shrink that prefix.</p>
+<p>Context diff and tool-result attribution need two live requests. They describe the current session. Ledger rows from older days keep usage, not payload text.</p>
+`,
+optimize:`
+<p>Key <span class="k">5</span>. The Optimize view keeps an inventory of tool schemas Iris has seen on the wire, and whether those tools are actually being called.</p>
+<pre>Tool                 Context       Calls
+─────────────────────────────────────────
+Read                    0.8k          24
+Bash                    1.2k          18
+Grep                    0.5k          12
+NotebookEdit            1.7k           0
+OptionalTool            2.3k           0</pre>
+<p>If a large optional tool keeps showing up in context and has never been called, you may not want to carry it around in every request. Core tools you rely on should stay enabled.</p>
+<p>Toggle tools off to stage a change. Nothing is written until you publish it.</p>
+<p><strong>Publish changes</strong> writes bare tool names into Claude Code's <span class="mono">permissions.deny</span>:</p>
+<pre>{
+  "permissions": {
+    "deny": [
+      "NotebookEdit",
+      "OptionalTool"
+    ]
+  }
+}</pre>
+<p>A bare deny can remove that tool's schema from later Claude Code requests. A deny object with a path can stop some executions and still leave the schema in context. Optimize only writes bare names.</p>
+<p>Claude Code applies the deny list on the next session. A prefix already in cache can keep billing until TTL.</p>
+`,
+"vs-perm":`
+<p>Removing a tool from context and blocking an action are related, but they solve different problems.</p>
+<div class="grid">
+  <div class="card">
+    <div class="lbl">Optimize</div>
+    <h4>What Claude needs in context</h4>
+    <p>Drop unused schemas so they stop shipping on every request.</p>
+  </div>
+  <div class="card">
+    <div class="lbl">Guard</div>
+    <h4>What Claude is allowed to do</h4>
+    <p>Evaluate the action at PreToolUse: Allow, Ask, or Deny.</p>
+  </div>
+</div>
+<p>A tool can be worth keeping visible while still needing restrictions around how it is used. If the task still needs a shell, do not deny <span class="mono">Bash</span> “for safety.” Put the constraint in Guard instead.</p>
+`,
+guard:`
+<p>Key <span class="k">6</span>. Claude Code can do more than generate text. It can read and change files, run commands, and use whatever other tools you expose to it.</p>
+<p>Guard gives the current task an authority envelope. A typical envelope might allow work inside the project while being much stricter around production access, destructive commands, credentials, or writes outside the repository.</p>
+<pre>                 TASK AUTHORITY
+
+Project files       ALLOW
+Local reads         ALLOW
+Safe local commands ALLOW
+
+Destructive action  ASK
+External write      ASK
+
+Outside project     DENY
+Production          DENY
+Credentials         DENY</pre>
+<p>The envelope is stored outside the conversation and shared by the Iris UI, server, and Claude Code hook: <span class="mono">~/.iris/projects/&lt;id&gt;/sessions/authority.json</span> (or <span class="mono">IRIS_ENVELOPE_PATH</span>).</p>
+<p>Write a one-line task and Accept. Until you accept, Guard still uses those safe defaults. Claude can discover something without automatically gaining permission to use it.</p>
+`,
+allow:`
+<p>Guard evaluates tool actions before execution.</p>
+<p>An ordinary project read can pass immediately:</p>
+<pre>Read src/server.js
+→ ALLOW</pre>
+<p>Something outside the normal task boundary can require confirmation:</p>
+<pre>Run unfamiliar external command
+→ ASK</pre>
+<p>An action outside the accepted authority can be rejected:</p>
+<pre>Write outside project root
+→ DENY</pre>
+<p>Hard policy denies are enforced by the hook rather than left to the model to interpret.</p>
+`,
+limits:`
+<h3>Where Guard is strongest</h3>
+<p>Some decisions can be checked reliably from structure.</p>
+<h4>Path containment</h4>
+<p>Iris resolves paths against the project root. Reads and writes outside the permitted boundary can be denied.</p>
+<h4>Authority cannot expand itself</h4>
+<p>The model does not own its authority file. It can propose a wider envelope, but Iris rejects a proposal that grants more authority than the current one.</p>
+<h4>Restrictive failure behavior</h4>
+<p>If the envelope is missing, unreadable, or a command cannot be classified safely, Guard falls back to restrictive defaults or asks instead of silently allowing it. Decisions are written to the ledger.</p>
+<h3>Guard has limits</h3>
+<p>Arbitrary shell commands are difficult to classify perfectly.</p>
+<p>Iris has an allowlist for known read-only operations and recognizers for some dangerous command shapes. Commands it cannot classify can be sent to ASK.</p>
+<p>A deliberately unusual shell command may still get past a recognizer.</p>
+<p>Use Guard as another boundary around the agent, especially for filesystem scope and production access. It should not be your only protection around irreversible infrastructure.</p>
+`,
+flight:`
+<p>Key <span class="k">7</span>. The Flight Recorder shows the tools Claude actually invoked and the Guard decision attached to each one.</p>
+<pre>12:41:02   Read       ALLOW
+12:41:04   Grep       ALLOW
+12:41:08   Bash       ALLOW
+12:41:16   Write      ASK
+12:41:21   Bash       DENY</pre>
+<p>This is useful when you want to see what happened during a session instead of reconstructing it from the chat.</p>
+<p>It also gives Optimize better evidence. If a large optional schema keeps appearing in context but never appears here, you have a good reason to look at whether it belongs in the default toolset.</p>
+<p>Same header time range. Filter by tool. Click a row for the captured command. <span class="mono">rm</span>, <span class="mono">sudo</span>, and similar get a warning tag.</p>
+`,
+overview:`
+<p>Key <span class="k">1</span>. Current usage, context, and Guard state for the header time range: tokens shipped, billed $ (list rates for known models; unknown models stay unpriced, never printed as $0.00), unused tool-schema tax, envelope status, Allow / Ask / Deny counts.</p>
+<p>The ribbon is the last request in that range drawn to scale: system prompt, tool schemas, conversation. Hover a segment for tokens and projected cost.</p>
+<p>Flags only render when they apply (idle schemas, HTTP failures, slow cache writes). Click a cost bar for the Traffic inspector. <span class="k">⌘K</span> jumps to a view, call, or tool.</p>
+`,
+spend:`
+<p>Key <span class="k">2</span>. Usage and model cost over the header time range, priced from API <span class="mono">usage</span> on billable <span class="mono">/v1/messages</span> calls.</p>
+<p>Daily bars, cache savings vs writing the same tokens, models used. Cache expiries show up when a session sits idle past the TTL and the next turn rewrites the prefix at write price.</p>
+<p>Dollars are list rates. Promos and contracts are missing; Claude Console is the invoice.</p>
+`,
+traffic:`
+<p>Key <span class="k">3</span>. Individual model requests in the header window: time, messages, tokens shipped, output, latency, cache hit, cost. Filters: Slow, Cache miss, Failed.</p>
+<p>Click a row for the call inspector: params, usage, system / schemas / messages. Older ledger rows keep usage and dollars, not conversation text.</p>
+<p>One chat turn can be several <span class="mono">POST /v1/messages</span>. <span class="mono">count_tokens</span> is skipped and unbilled. When a cost spike shows up, set the header to the smallest range that still contains it, then open the expensive or failing row here.</p>
+`,
+header:`
+<p>Last hour / Today / This week / This month / All sits in the dashboard header. It filters Overview, Spend, Traffic, Context, Guard decisions, and Flight Recorder.</p>
+<p>Optimize stays on the live tool inventory — what would ship next — which is deliberate.</p>
+<p>Today and This week are calendar windows in local time (week starts Monday). Last hour is a rolling 60 minutes. All merges the spend ledger and action log with the current session. The choice is stored as <span class="mono">iris.timeWindow</span>.</p>
+`,
+local:`
+<p>Iris runs on your machine and binds to:</p>
+<pre>127.0.0.1:8787</pre>
+<pre>Claude Code
+     │
+     ▼
+Iris :8787
+     │
+     ▼
+Anthropic</pre>
+<p>Project state, authority envelopes, exports, and Iris logs are kept locally. Model requests are forwarded byte-for-byte unless you explicitly enable wire redaction. Iris itself does not add another model call for Guard decisions.</p>
+<p>Logs land under <span class="mono">.claude/proxy-logs/</span>. History index (priced calls) and action log (tools that ran) keep Spend and Flight Recorder after the chat ends. The live UI capture is this session, bounded, and is what the ribbon and inspector draw from.</p>
+`,
+architecture:`
+<pre>Claude Code ──────► Iris :8787 ──────► Anthropic
+                       │
+                ┌──────┴───────┐
+                │   IRIS CORE  │
+                │              │
+                │ context      │
+                │ usage        │
+                │ policy       │
+                │ forensics    │
+                └──────┬───────┘
+                       │
+                 AgentAdapter
+                       │
+                Claude Code
+                   adapter</pre>
+<p>Iris currently targets Claude Code. The core uses an <span class="mono">AgentAdapter</span> boundary so another host can be added later without putting Claude Code-specific behavior throughout the rest of the project.</p>
+<p>Support for another agent should only be added when its context, permission, and telemetry behavior can actually be mapped to that interface.</p>
+<p>HTTP goes through the proxy. Tool execution goes through the PreToolUse hook. Same process, two entry points. The hook, init, and server share one envelope path: <span class="mono">authorityPath(projectId)</span>.</p>
+`,
+rules:`
+<h3>A few rules Iris keeps</h3>
+<ul>
+  <li>Model requests stay byte-identical upstream unless <span class="mono">PROXY_REDACT_WIRE=1</span>.</li>
+  <li>Unknown model prices remain unpriced instead of showing a misleading $0.00.</li>
+  <li>Hard Guard denies cannot be overridden by the model.</li>
+  <li>Discovering a tool or resource does not grant permission to use it.</li>
+  <li>Iris only binds to <span class="mono">127.0.0.1</span>.</li>
+  <li>The hook, server, and UI use the same authority envelope.</li>
+</ul>
+<h3>Privacy</h3>
+<p>Iris redacts recognized API keys and secrets from its logs by default. Email redaction is enabled by default as well.</p>
+<p>The dashboard can optionally require an <span class="mono">IRIS_UI_TOKEN</span> for actions that change state, including publishing Optimize changes and accepting a Guard envelope. Open <span class="mono">/__monitor?iris_token=…</span> once; a <span class="mono">?token=</span> query on POST URLs is ignored.</p>
+<p>Wire redaction is separate and opt-in. Without it, Iris observes the request locally and forwards the original request upstream.</p>
+`,
+cheatsheet:`
+<table class="table">
+  <thead><tr><th>Key</th><th>View</th><th>What it's for</th></tr></thead>
+  <tbody>
+    <tr><td><span class="k">1</span></td><td>Overview</td><td>Current usage, context and Guard state</td></tr>
+    <tr><td><span class="k">2</span></td><td>Spend</td><td>Usage and model cost over time</td></tr>
+    <tr><td><span class="k">3</span></td><td>Traffic</td><td>Individual model requests</td></tr>
+    <tr><td><span class="k">4</span></td><td>Context</td><td>System, tools and conversation breakdown</td></tr>
+    <tr><td><span class="k">5</span></td><td>Optimize</td><td>Tool-schema usage and configuration</td></tr>
+    <tr><td><span class="k">6</span></td><td>Guard</td><td>Task authority and decisions</td></tr>
+    <tr><td><span class="k">7</span></td><td>Flight Recorder</td><td>Tools that actually ran</td></tr>
+  </tbody>
+</table>
+<p><span class="k">⌘K</span> or <span class="k">Ctrl+K</span> jumps to a view, call, or tool.</p>
+<pre>npx @zero-drift/iris              # start proxy + UI
+npx @zero-drift/iris init         # wire this project
+npx @zero-drift/iris hook         # used by Claude Code hooks
+npx @zero-drift/iris version
+npx @zero-drift/iris help</pre>
+<p>From a clone: <span class="mono">cd iris && npm start</span> / <span class="mono">npm test</span>.</p>
+<table class="table">
+  <thead><tr><th>Variable</th><th>Default</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td><span class="mono">PROXY_PORT</span></td><td>8787</td><td>Bind 127.0.0.1</td></tr>
+    <tr><td><span class="mono">ANTHROPIC_PROXY_TARGET</span></td><td>api.anthropic.com</td><td>Upstream</td></tr>
+    <tr><td><span class="mono">IRIS_HOME</span></td><td>~/.iris</td><td>Per-project store</td></tr>
+    <tr><td><span class="mono">IRIS_ENVELOPE_PATH</span></td><td>…/sessions/authority.json</td><td>Hook = UI = server</td></tr>
+    <tr><td><span class="mono">IRIS_UI_TOKEN</span></td><td>unset</td><td>X-Iris-Token on Publish / Accept / evaluate</td></tr>
+    <tr><td><span class="mono">PROXY_REDACT</span></td><td>on</td><td>Scrub secrets in logs</td></tr>
+    <tr><td><span class="mono">PROXY_REDACT_EMAILS</span></td><td>on</td><td>Scrub emails in logs</td></tr>
+    <tr><td><span class="mono">PROXY_REDACT_WIRE</span></td><td>off</td><td>Redact on the wire</td></tr>
+  </tbody>
+</table>
+<p>Guide while Iris is running: <span class="mono">http://127.0.0.1:8787/__guide</span>.</p>
+`,
+};
+
+function renderRail(filter=""){
+  const q=filter.trim().toLowerCase();
+  const el=$("#curric");
+  el.innerHTML=SECTIONS.map(s=>{
+    const lects=s.lessons.filter(l=>!q||l.title.toLowerCase().includes(q)||s.title.toLowerCase().includes(q));
+    if(!lects.length) return "";
+    return `<div class="sec" data-sec="${s.id}">
+      <button class="sec-h" type="button" aria-expanded="true">${s.title}
+        <svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 4.5 6 8l3-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+      ${lects.map(l=>`<button class="lect" type="button" data-go="${l.id}">${l.title}</button>`).join("")}
+    </div>`;
+  }).join("");
+}
+function show(id){
+  const i=LESSONS.findIndex(l=>l.id===id);
+  const L=LESSONS[i]||LESSONS[0];
+  history.replaceState(null,"","#"+L.id);
+  $("#stageEye").textContent=L.section;
+  $("#stageTitle").textContent=L.title;
+  $("#stageSec").textContent=L.section;
+  $("#stageArt").innerHTML=ART[L.id]||"";
+  $("#crumb").textContent=`${L.section} · ${L.title}`;
+  $("#content").innerHTML=HTML[L.id]||"<p>Missing page.</p>";
+  $("#content").dataset.id=L.id;
+  $$lect().forEach(b=>b.setAttribute("aria-current", b.dataset.go===L.id?"true":"false"));
+  $("#content").focus({preventScroll:true});
+  window.scrollTo(0,0);
+  closeRail();
+}
+function $$lect(){ return [...document.querySelectorAll(".lect")]; }
+function openRail(){ $("#rail").classList.add("open"); $("#scrim").hidden=false; $("#scrim").classList.add("on"); $("#menuBtn").setAttribute("aria-expanded","true"); }
+function closeRail(){ $("#rail").classList.remove("open"); $("#scrim").hidden=true; $("#scrim").classList.remove("on"); $("#menuBtn").setAttribute("aria-expanded","false"); }
+
+renderRail();
+const raw=(location.hash||"#welcome").slice(1);
+const start=ALIAS[raw]||raw;
+show(LESSONS.some(l=>l.id===start)?start:"welcome");
+
+document.addEventListener("click",e=>{
+  const go=e.target.closest("[data-go]"); if(go){ e.preventDefault(); show(go.dataset.go); return; }
+  const sec=e.target.closest(".sec-h"); if(sec){ sec.parentElement.classList.toggle("closed"); sec.setAttribute("aria-expanded", sec.parentElement.classList.contains("closed")?"false":"true"); return; }
+  if(e.target.closest("#menuBtn")) return ($("#rail").classList.contains("open")?closeRail:openRail)();
+  if(e.target.id==="scrim") return closeRail();
+});
+$("#q").addEventListener("input",e=>{
+  renderRail(e.target.value);
+  const id=$("#content").dataset.id;
+  $$lect().forEach(b=>b.setAttribute("aria-current", b.dataset.go===id?"true":"false"));
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,2529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Iris for Claude Code</title>
+<style>
+:root{
+  --paper:#EFF2F7; --surface:#fff; --well:#F7F9FC; --sunk:#EDF1F7;
+  --ink:#131826; --ink2:#59637A; --ink3:#8B95AA;
+  --line:#E1E6EF; --line2:#CDD5E2;
+  --wire:#1B4DFF; --wire-soft:#E8EDFF;
+  --jade:#07785E; --jade-soft:#E1F4EE;
+  --amber:#A75A06; --amber-soft:#FDF0DF;
+  --rust:#BB332A; --rust-soft:#FCE9E7;
+  --violet:#6435DE; --violet-soft:#EFEAFE;
+  --sys:var(--wire); --too:#D08700; --his:var(--violet);
+  --ui:"Instrument Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --r:10px; --r-lg:14px;
+  --sh-1:0 1px 2px rgba(19,24,38,.05);
+  --sh-2:0 1px 3px rgba(19,24,38,.07),0 6px 18px -6px rgba(19,24,38,.10);
+  --sh-3:0 12px 40px -8px rgba(19,24,38,.20),0 2px 8px rgba(19,24,38,.08);
+  --rail:238px; --top:60px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:var(--ui);background:var(--paper);color:var(--ink);font-size:15.5px;line-height:1.58;
+  -webkit-font-smoothing:antialiased;overflow:hidden;height:100vh;height:100dvh}
+button,input,select{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--wire);outline-offset:2px;border-radius:4px}
+::selection{background:var(--wire);color:#fff}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.mono{font-family:var(--mono)}
+
+/* ── scrollbars ─────────────────────────────── */
+*::-webkit-scrollbar{width:10px;height:10px}
+*::-webkit-scrollbar-thumb{background:#C9D1E0;border-radius:99px;border:3px solid transparent;background-clip:content-box}
+*::-webkit-scrollbar-thumb:hover{background:#AEB9CD;background-clip:content-box}
+*::-webkit-scrollbar-track{background:transparent}
+
+/* ── topbar ─────────────────────────────────── */
+.top{position:fixed;inset:0 0 auto 0;height:var(--top);z-index:60;display:flex;align-items:center;gap:14px;
+  padding:0 14px;background:rgba(255,255,255,.86);backdrop-filter:saturate(1.6) blur(14px);
+  border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;letter-spacing:-.02em;font-size:17px}
+.brand-mark{width:29px;height:29px;flex:none}
+.env{display:flex;align-items:center;gap:7px;height:32px;padding:0 9px 0 10px;border:1px solid var(--line2);
+  border-radius:8px;background:var(--well);font-size:13.5px;font-weight:600;color:var(--ink2)}
+.env:hover{border-color:var(--ink3)}
+.pulse{width:7px;height:7px;border-radius:99px;background:var(--jade);position:relative}
+.pulse::after{content:"";position:absolute;inset:-3px;border-radius:99px;background:var(--jade);opacity:.25;animation:pulse 2.4s ease-out infinite}
+/* proxy stream is down — stop pretending anything is arriving */
+.pulse.off{background:var(--rust)}
+.pulse.off::after{background:var(--rust);animation:none;opacity:0}
+@keyframes pulse{0%{transform:scale(.6);opacity:.35}100%{transform:scale(1.9);opacity:0}}
+.spacer{flex:1}
+.ksearch{display:flex;align-items:center;gap:8px;height:34px;padding:0 9px 0 12px;min-width:250px;
+  border:1px solid var(--line2);border-radius:8px;background:var(--well);color:var(--ink3);font-size:14px}
+.ksearch:hover{border-color:var(--ink3);color:var(--ink2)}
+.top #twin{flex:none}
+.top #twin button{padding:5px 10px;font-size:12.5px;white-space:nowrap}
+kbd{font-family:var(--mono);font-size:11.5px;padding:2px 5px;border:1px solid var(--line2);border-radius:5px;
+  background:#fff;color:var(--ink3);line-height:1}
+.btn{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 14px;border-radius:8px;
+  border:1px solid var(--line2);background:#fff;font-size:14px;font-weight:600;transition:.14s}
+.btn:hover{border-color:var(--ink3);background:var(--well)}
+.btn.pri{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.pri:hover{background:#242C40}
+.btn.pri:disabled{opacity:.4;cursor:not-allowed}
+.btn .cnt{font-family:var(--mono);font-size:11px;background:rgba(255,255,255,.22);padding:1px 5px;border-radius:5px}
+
+/* ── shell ──────────────────────────────────── */
+.shell{position:fixed;inset:var(--top) 0 0 0;display:flex}
+.rail{width:var(--rail);flex:none;background:#fff;border-right:1px solid var(--line);
+  display:flex;flex-direction:column;padding:14px 12px;gap:2px;z-index:40;overflow-y:auto}
+.rail-lbl{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);
+  padding:6px 10px 8px}
+.nav{display:flex;align-items:flex-start;gap:11px;width:100%;padding:9px 10px;border-radius:10px;
+  color:var(--ink2);position:relative;transition:.14s;text-align:left}
+.nav svg{flex:none;margin-top:2px}
+.nav .lab{display:block;font-size:14.5px;font-weight:600;color:var(--ink);line-height:1.3}
+.nav .lab-m{display:none}
+.nav .des{display:block;font-size:12.5px;color:var(--ink3);line-height:1.35;margin-top:2px}
+.nav:hover{background:var(--sunk)}
+.nav[aria-current="page"]{background:var(--wire-soft);color:var(--wire)}
+.nav[aria-current="page"] .lab{color:var(--wire)}
+.nav[aria-current="page"] .des{color:#5B7BE8}
+.nav[aria-current="page"]::before{content:"";position:absolute;left:-12px;top:10px;bottom:10px;width:3px;
+  border-radius:0 3px 3px 0;background:var(--wire)}
+.nav .kb{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink3);
+  border:1px solid var(--line);border-radius:5px;padding:1px 5px;background:var(--well);flex:none;margin-top:2px}
+.reset-link{margin-top:8px;padding:0;font-size:12px;font-weight:500;color:var(--ink3);
+  text-decoration:underline;text-underline-offset:2px;transition:color .14s}
+.reset-link:hover{color:var(--rust)}
+.ctabs{display:flex;gap:4px;margin-bottom:14px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+.ctab{display:flex;flex-direction:column;gap:2px;padding:9px 14px 10px;border-radius:8px 8px 0 0;
+  color:var(--ink2);position:relative;text-align:left;transition:.14s}
+.ctab:hover{background:var(--sunk);color:var(--ink)}
+.ctab b{font-size:13.5px;font-weight:600;color:inherit;white-space:nowrap}
+.ctab span{font-family:var(--mono);font-size:11.5px;color:var(--ink3);white-space:nowrap}
+.ctab[aria-selected="true"]{background:var(--wire-soft);color:var(--wire)}
+.ctab[aria-selected="true"] span{color:var(--wire);opacity:.75}
+.ctab[aria-selected="true"]::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--wire)}
+.linkish{font-size:12px;font-weight:600;color:var(--wire);text-decoration:underline;text-underline-offset:2px;padding:0 0 0 4px}
+.linkish:hover{opacity:.75}
+@media(max-width:760px){.ctabs{overflow-x:auto;flex-wrap:nowrap}.ctab{flex:none}}
+.rail-foot{margin-top:auto;padding:12px 10px 4px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink3);line-height:1.45}
+.main{flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth}
+.wrap{max-width:1420px;margin:0 auto;padding:22px 26px 90px}
+
+/* ── page head ──────────────────────────────── */
+.phead{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.eyebrow{font-size:11.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:5px}
+h1{font-size:28px;font-weight:700;letter-spacing:-.03em;line-height:1.15}
+.sub{color:var(--ink2);font-size:15px;margin-top:5px;max-width:62ch;text-wrap:balance}
+
+/* ── cards ──────────────────────────────────── */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-1)}
+.chead{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line)}
+.ctitle{font-size:15px;font-weight:700;letter-spacing:-.01em}
+.cnote{font-size:13px;color:var(--ink3)}
+.cbody{padding:16px}
+.grid{display:grid;gap:14px}
+
+/* ── kpi ────────────────────────────────────── */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px 15px;box-shadow:var(--sh-1);
+  position:relative;overflow:hidden}
+.kpi .lbl{font-size:11.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
+.kpi .val{font-family:var(--mono);font-size:29px;font-weight:600;letter-spacing:-.035em;margin-top:7px;line-height:1}
+.kpi .foot{display:flex;align-items:center;gap:6px;margin-top:9px;font-size:13px;color:var(--ink2)}
+.kpi .spark{position:absolute;right:0;bottom:0;opacity:.5}
+.delta{font-family:var(--mono);font-size:12.5px;font-weight:600;padding:1.5px 6px;border-radius:6px}
+.delta.up{background:var(--rust-soft);color:var(--rust)}
+.delta.dn{background:var(--jade-soft);color:var(--jade)}
+.delta.flat{background:var(--sunk);color:var(--ink2)}
+
+/* ── SIGNATURE: context ribbon + prefix magnifier ── */
+.rib-stage{padding:0 18px}
+.rib-mag{display:flex;height:54px;border:1px solid var(--line);border-bottom:0;border-radius:9px 9px 0 0;
+  overflow:hidden;background:var(--sunk);cursor:crosshair}
+.rib-mag .seg{border-right:1px solid rgba(255,255,255,.28)}
+.rib-mag .seg:last-child{border-right:0}
+.rib-mag .cap{position:absolute;left:7px;top:50%;transform:translateY(-50%);font-size:11.5px;font-weight:600;
+  color:#fff;letter-spacing:.01em;white-space:nowrap;pointer-events:none;text-shadow:0 1px 2px rgba(0,0,0,.28);
+  max-width:calc(100% - 10px);overflow:hidden;text-overflow:ellipsis;text-transform:none}
+.rib-mag .cap i{display:block;font-style:normal;font-family:var(--mono);font-size:11px;opacity:.8;font-weight:400;margin-top:1px}
+.rib-link{display:block;width:100%;height:22px;overflow:visible}
+.rib-caption{display:flex;align-items:center;gap:8px;padding:9px 0 7px;font-size:12px;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
+.rib-caption::after{content:"";flex:1;height:1px;background:var(--line)}
+/* ── SIGNATURE: context ribbon ──────────────── */
+.ribbon-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-2);overflow:hidden}
+.ribbon-top{display:flex;align-items:center;gap:14px;padding:14px 18px 12px;flex-wrap:wrap}
+.ribbon-legend{display:flex;gap:14px;margin-left:auto;flex-wrap:wrap}
+.lg{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink2);font-weight:500}
+.sw{width:9px;height:9px;border-radius:3px}
+.ribbon{position:relative;height:78px;border-radius:9px;overflow:hidden;background:var(--sunk);
+  display:flex;cursor:crosshair;border:1px solid var(--line)}
+.seg{position:relative;height:100%;transition:filter .12s;min-width:1px}
+.seg:hover{filter:brightness(1.14) saturate(1.2)}
+.seg.sys{background:linear-gradient(180deg,#3D66FF,#1B4DFF)}
+.seg.too{background:linear-gradient(180deg,#EDA31C,#D08700)}
+.seg.his{background:linear-gradient(180deg,#8460F0,#6435DE)}
+.seg.his.alt{background:linear-gradient(180deg,#9B7CF3,#7A50E6)}
+.ribbon .seg .cap{position:absolute;left:8px;top:8px;font-size:10.5px;font-weight:700;color:#fff;letter-spacing:.04em;
+  text-transform:uppercase;opacity:.92;white-space:nowrap;pointer-events:none;text-shadow:0 1px 2px rgba(0,0,0,.2)}
+.ribbon .seg .cap i{display:block;font-style:normal;font-family:var(--mono);font-size:12px;letter-spacing:-.02em;
+  text-transform:none;font-weight:500;opacity:.85;margin-top:2px}
+.prefix-lens{position:absolute;top:0;bottom:0;left:0;background:rgba(255,255,255,.16);
+  border-right:1px solid rgba(255,255,255,.6);pointer-events:none;z-index:2}
+.notch{position:absolute;top:0;bottom:0;width:2px;background:repeating-linear-gradient(180deg,#fff 0 4px,transparent 4px 8px);
+  z-index:3;pointer-events:none}
+.notch::after{content:"⌷";position:absolute;top:-1px;left:50%;transform:translateX(-50%);font-size:9px;color:#fff}
+.ribbon-scale{display:flex;justify-content:space-between;margin:8px 0 0;font-family:var(--mono);font-size:11.5px;color:var(--ink3)}
+.ribbon-foot{display:flex;align-items:center;gap:9px;padding:11px 18px 15px;border-top:1px solid var(--line);margin-top:13px;flex-wrap:wrap}
+#ribTip{font-size:14px;color:var(--ink2);min-height:19px}
+#ribTip b{color:var(--ink);font-weight:600}
+#ribTip .k{font-family:var(--mono);font-size:12.5px;background:var(--sunk);padding:1.5px 6px;border-radius:5px;margin-left:6px}
+
+/* ── bars / charts ──────────────────────────── */
+.bars{display:flex;align-items:flex-end;gap:5px;height:120px;padding-top:8px}
+.bar{flex:1;position:relative;border-radius:4px 4px 2px 2px;background:linear-gradient(180deg,#4F76FF,#1B4DFF);
+  min-height:3px;transition:.18s;cursor:pointer}
+.bar:hover{filter:brightness(1.16)}
+.bar.sel{outline:2px solid var(--ink);outline-offset:1px}
+.xaxis{display:flex;gap:5px;margin-top:7px}
+.xaxis span{flex:1;text-align:center;font-family:var(--mono);font-size:11px;color:var(--ink3)}
+
+/* ── tables ─────────────────────────────────── */
+.tbl{width:100%;border-collapse:collapse;font-size:14.5px}
+.tbl th{position:sticky;top:0;background:var(--well);z-index:2;text-align:left;font-size:11.5px;font-weight:600;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);padding:11px 16px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl td{padding:13px 16px;border-bottom:1px solid var(--line)}
+.tbl tbody tr{transition:background .1s}
+.tbl tbody tr:hover{background:var(--well)}
+.tbl tbody tr.sel{background:var(--wire-soft)}
+.tbl tbody tr:last-child td{border-bottom:0}
+.r{text-align:right}
+.tbl-scroll{max-height:none;overflow:auto;border-radius:0 0 var(--r-lg) var(--r-lg)}
+
+/* ── chips / tags ───────────────────────────── */
+.tag{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:3px 9px;
+  border-radius:999px;background:var(--sunk);color:var(--ink2);white-space:nowrap}
+.tag.ok{background:var(--jade-soft);color:var(--jade)}
+.tag.warn{background:var(--amber-soft);color:var(--amber)}
+.tag.bad{background:var(--rust-soft);color:var(--rust)}
+.tag.wire{background:var(--wire-soft);color:var(--wire)}
+.tag.vio{background:var(--violet-soft);color:var(--violet)}
+.tag.mono{font-family:var(--mono);font-weight:500;letter-spacing:-.01em}
+.dot-s{width:6px;height:6px;border-radius:99px;background:currentColor;flex:none}
+
+/* ── toggle ─────────────────────────────────── */
+.tog{width:40px;height:23px;border-radius:99px;background:var(--line2);position:relative;flex:none;transition:.18s}
+.tog::after{content:"";position:absolute;top:2px;left:2px;width:19px;height:19px;border-radius:99px;background:#fff;
+  box-shadow:0 1px 3px rgba(0,0,0,.2);transition:.18s cubic-bezier(.3,1.4,.6,1)}
+.tog[aria-checked="true"]{background:var(--jade)}
+.tog[aria-checked="true"]::after{transform:translateX(17px)}
+.tog.pend{background:var(--amber)}
+.tog:disabled{opacity:.45;cursor:not-allowed}
+
+/* ── segmented ──────────────────────────────── */
+.segd{display:inline-flex;background:var(--sunk);border-radius:9px;padding:3px;gap:2px}
+.segd button{padding:7px 15px;border-radius:7px;font-size:13.5px;font-weight:600;color:var(--ink2);transition:.14s}
+.segd button[aria-selected="true"]{background:#fff;color:var(--ink);box-shadow:var(--sh-1)}
+
+/* ── waterfall ──────────────────────────────── */
+.wf{position:relative;height:24px;background:var(--sunk);border-radius:5px;overflow:hidden;min-width:110px}
+.wf i{position:absolute;top:0;bottom:0;border-radius:5px;background:linear-gradient(90deg,#5B7EFF,#1B4DFF)}
+.wf i.slow{background:linear-gradient(90deg,#E08A2B,#B45309)}
+.wf i.vslow{background:linear-gradient(90deg,#D9564A,#BB332A)}
+.wf b{position:absolute;right:7px;top:0;line-height:24px;font-family:var(--mono);font-size:12px;color:var(--ink2);font-weight:500}
+
+/* ── stack meter ────────────────────────────── */
+.stack{display:flex;height:9px;border-radius:99px;overflow:hidden;background:var(--sunk);gap:1px}
+.stack i{display:block}
+
+/* ── drawer ─────────────────────────────────── */
+.scrim{position:fixed;inset:0;background:rgba(19,24,38,.28);backdrop-filter:blur(2px);z-index:80;opacity:0;
+  pointer-events:none;transition:.2s}
+.scrim.on{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(680px,100vw);background:var(--paper);z-index:90;
+  box-shadow:var(--sh-3);transform:translateX(100%);transition:transform .26s cubic-bezier(.32,.9,.35,1);
+  display:flex;flex-direction:column}
+.drawer.on{transform:none}
+.dhead{flex:none;background:#fff;border-bottom:1px solid var(--line);padding:14px 18px}
+.dbody{flex:1;min-height:0;overflow-y:auto;padding:16px 18px 40px;display:flex;flex-direction:column;gap:12px}
+/* Cards keep their natural height and the drawer scrolls. Without this the
+   flex column shrinks them to fit — and because .acc/.msg clip overflow, the
+   squashed ones lose their own header text. */
+.dbody>*{flex:0 0 auto}
+.x{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--ink2)}
+.x:hover{background:var(--sunk);color:var(--ink)}
+
+/* ── accordion ──────────────────────────────── */
+.acc{border:1px solid var(--line);border-radius:var(--r);background:#fff;overflow:hidden}
+.ahead{display:flex;align-items:center;gap:9px;padding:13px 15px;width:100%;text-align:left;font-size:14px;font-weight:700}
+.ahead:hover{background:var(--well)}
+.caret{width:14px;height:14px;flex:none;color:var(--ink3);transition:transform .18s}
+.acc.open .caret{transform:rotate(90deg)}
+.abody{display:none;padding:0 13px 13px;border-top:1px solid var(--line)}
+.acc.open .abody{display:block}
+.pre{font-family:var(--mono);font-size:12.5px;line-height:1.65;background:var(--well);border:1px solid var(--line);
+  border-radius:8px;padding:11px;white-space:pre-wrap;word-break:break-word;max-height:340px;overflow:auto;color:#2A3244}
+
+/* ── message timeline ───────────────────────── */
+.msg{border:1px solid var(--line);border-radius:9px;background:#fff;overflow:hidden;margin-top:8px}
+.mhead{display:flex;align-items:center;gap:8px;padding:10px 13px;background:var(--well);border-bottom:1px solid var(--line);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
+.mhead .n{font-family:var(--mono);color:var(--ink3);text-transform:none;letter-spacing:0;font-weight:500}
+.blk{padding:11px 13px;border-bottom:1px dashed var(--line);font-size:13.5px}
+.blk:last-child{border-bottom:0}
+.btype{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:5px;display:flex;gap:7px;align-items:center}
+.btxt{font-family:var(--mono);font-size:12.5px;line-height:1.65;color:#2A3244;white-space:pre-wrap;word-break:break-word;max-height:180px;overflow:auto}
+.blk.think{background:#FBFAFF}
+.blk.think .btxt{color:var(--violet);font-style:italic}
+.blk.err{background:var(--rust-soft)}
+
+/* ── trace ──────────────────────────────────── */
+.trace{position:relative;padding-left:30px}
+.trace::before{content:"";position:absolute;left:11px;top:8px;bottom:8px;width:2px;background:var(--line)}
+.tr{position:relative;display:flex;gap:11px;padding:9px 0;align-items:flex-start}
+.tr::before{content:"";position:absolute;left:-24px;top:15px;width:9px;height:9px;border-radius:99px;
+  background:#fff;border:2px solid var(--line2);z-index:1}
+.tr.w::before{border-color:var(--amber);background:var(--amber-soft)}
+.tr.d::before{border-color:var(--rust);background:var(--rust-soft)}
+.tr .i{font-family:var(--mono);font-size:12px;color:var(--ink3);width:22px;flex:none;padding-top:3px;text-align:right}
+.tr .body{flex:1;min-width:0}
+.tr .cmd{font-family:var(--mono);font-size:12.5px;color:var(--ink2);background:var(--well);border:1px solid var(--line);
+  border-radius:7px;padding:6px 9px;margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* One action, one line. A 140-char description in a wrapping flex row was making
+   every row two or three lines tall, which is what stopped the trace scaling. */
+.tr .hd{display:flex;align-items:baseline;gap:8px;min-width:0}
+.tr .hd b{flex:none}
+.tr .desc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
+.tr .when{flex:none;font-family:var(--mono);font-size:11.5px;color:var(--ink3)}
+.tr.open .cmd{white-space:pre-wrap;word-break:break-word}
+.tr.open .desc{white-space:normal}
+.tr{cursor:pointer}
+.tr:hover .cmd{border-color:var(--line2)}
+
+/* ── cmdk ───────────────────────────────────── */
+.cmdk{position:fixed;inset:0;z-index:100;display:none;padding-top:12vh;justify-content:center;
+  background:rgba(19,24,38,.3);backdrop-filter:blur(3px)}
+.cmdk.on{display:flex}
+.cmdk-box{width:min(560px,92vw);height:max-content;max-height:60vh;background:#fff;border-radius:14px;
+  box-shadow:var(--sh-3);overflow:hidden;display:flex;flex-direction:column;animation:pop .16s ease-out}
+@keyframes pop{from{transform:scale(.97) translateY(-6px);opacity:0}}
+.cmdk input{width:100%;border:0;padding:18px 20px;font-size:16.5px;border-bottom:1px solid var(--line);outline:0}
+.cmdk-list{overflow-y:auto;padding:6px}
+.ci{display:flex;align-items:center;gap:11px;padding:11px 13px;border-radius:9px;font-size:14.5px;cursor:pointer}
+.ci[data-a="1"]{background:var(--wire-soft);color:var(--wire)}
+.ci .hint{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--ink3)}
+
+/* ── toast ──────────────────────────────────── */
+.toasts{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:120;display:flex;flex-direction:column;gap:8px;align-items:center}
+.toast{display:flex;align-items:center;gap:10px;background:var(--ink);color:#fff;padding:12px 17px;border-radius:10px;
+  font-size:14px;font-weight:500;box-shadow:var(--sh-3);animation:rise .22s cubic-bezier(.3,1.3,.6,1)}
+@keyframes rise{from{transform:translateY(14px);opacity:0}}
+.toast .ok{color:#6EE7B7}
+
+/* ── misc ───────────────────────────────────── */
+.empty{padding:40px 20px;text-align:center;color:var(--ink3);font-size:14px}
+.hr{height:1px;background:var(--line);margin:2px 0}
+.muted{color:var(--ink2)}
+.small{font-size:13.5px}
+.risk-row{display:flex;align-items:flex-start;gap:11px;padding:11px 0;border-bottom:1px solid var(--line)}
+.risk-row:last-child{border-bottom:0}
+.ricon{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;flex:none;font-size:13px}
+.sim{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--jade-soft);border:1px solid #BFE6DA;
+  border-radius:var(--r);font-size:13px;flex-wrap:wrap}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+/* Grid items default to min-width:auto, so a wide child (a 100-bar chart and
+   its axis labels) refuses to shrink and blows the column — and its sibling —
+   off screen. Every split column must be allowed to shrink. */
+.split>*{min-width:0}
+.bars,.xaxis{overflow:hidden}
+.xaxis-ends{display:flex;justify-content:space-between;margin-top:7px;
+  font-family:var(--mono);font-size:11px;color:var(--ink3)}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+.kv:last-child{border-bottom:0}
+.kv span{color:var(--ink2)}
+.kv b{font-family:var(--mono);font-weight:600;letter-spacing:-.02em}
+
+@media(max-width:1180px){
+  .ksearch{min-width:auto;padding:0 9px}.ksearch span,.ksearch kbd{display:none}
+}
+@media(max-width:1020px){.split{grid-template-columns:1fr}}
+@media(max-width:920px){
+  .top #twin button{padding:5px 7px;font-size:11.5px}
+}
+@media(max-width:760px){
+  .wrap{padding:16px 14px 80px}
+  .ksearch{min-width:auto;padding:0 9px}.ksearch span,.ksearch kbd{display:none}
+  .rail{position:fixed;bottom:0;left:0;right:0;top:auto;width:auto;height:62px;flex-direction:row;
+    justify-content:space-around;border-right:0;border-top:1px solid var(--line);padding:0;overflow:visible}
+  .nav{flex-direction:column;align-items:center;gap:3px;padding:7px 4px;border-radius:0;justify-content:center}
+  .nav svg{margin:0}
+  .nav .lab{display:none}
+  .nav .lab-m{display:block;font-size:11px;font-weight:600;color:var(--ink);white-space:nowrap}
+  .nav[aria-current="page"] .lab-m{color:var(--wire)}
+  .nav .des,.nav .kb,.rail-lbl,.rail-foot{display:none}
+  .nav[aria-current="page"]{background:transparent}
+  .nav[aria-current="page"]::before{left:14px;right:14px;top:-1px;bottom:auto;width:auto;height:3px;border-radius:0 0 3px 3px}
+  .shell{padding-bottom:0}.main{padding-bottom:62px}
+  .drawer{width:100vw}
+  h1{font-size:21px}
+  .kpi .val{font-size:22px}
+}
+@media(prefers-reduced-motion:reduce){*,*::after,*::before{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+      <circle cx="16" cy="16" r="14.5" fill="#131826"/>
+      <path d="M16 4.5 A11.5 11.5 0 0 1 25.96 10.25 Z" fill="#1B4DFF"/>
+      <path d="M25.96 10.25 A11.5 11.5 0 0 1 25.96 21.75 Z" fill="#6435DE"/>
+      <path d="M25.96 21.75 A11.5 11.5 0 0 1 16 27.5 Z" fill="#1B4DFF" opacity=".72"/>
+      <path d="M16 27.5 A11.5 11.5 0 0 1 6.04 21.75 Z" fill="#6435DE" opacity=".72"/>
+      <path d="M6.04 21.75 A11.5 11.5 0 0 1 6.04 10.25 Z" fill="#1B4DFF" opacity=".5"/>
+      <path d="M6.04 10.25 A11.5 11.5 0 0 1 16 4.5 Z" fill="#6435DE" opacity=".5"/>
+      <circle cx="16" cy="16" r="4.6" fill="#fff"/>
+    </svg>
+    Iris
+  </div>
+  <button class="env" id="env" title="Reload the capture"><span class="pulse" id="pulse"></span><span id="envLabel">connecting…</span>
+    <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M3 4.5 6 8l3-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  <div class="segd" id="twin" role="tablist" aria-label="Dashboard time range" title="Filter the whole dashboard">
+    <button type="button" role="tab" aria-selected="false" data-w="hour">Last hour</button>
+    <button type="button" role="tab" aria-selected="true" data-w="today">Today</button>
+    <button type="button" role="tab" aria-selected="false" data-w="week">This week</button>
+    <button type="button" role="tab" aria-selected="false" data-w="month">This month</button>
+    <button type="button" role="tab" aria-selected="false" data-w="all">All</button>
+  </div>
+  <div class="spacer"></div>
+  <button class="ksearch" id="openK">
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.6" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5 14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    <span>Search calls, tools, actions</span><kbd>⌘K</kbd>
+  </button>
+  <button class="btn pri" id="publish" disabled>Publish changes <span class="cnt" id="pubCnt">0</span></button>
+</header>
+
+<div class="shell">
+  <nav class="rail" id="rail">
+    <div class="rail-lbl">Workspace</div>
+    <button class="nav" data-v="overview" aria-current="page">
+      <svg width="19" height="19" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="2.5" y="2.5" width="6.4" height="6.4" rx="2" stroke="currentColor" stroke-width="1.6"/><rect x="11.1" y="2.5" width="6.4" height="6.4" rx="2" stroke="currentColor" stroke-width="1.6"/><rect x="2.5" y="11.1" width="6.4" height="6.4" rx="2" stroke="currentColor" stroke-width="1.6"/><rect x="11.1" y="11.1" width="6.4" height="6.4" rx="2" stroke="currentColor" stroke-width="1.6"/></svg>
+      <span><span class="lab">Overview</span><span class="lab-m">Overview</span><span class="des">Cost, cache and live signals</span></span>
+      <span class="kb">1</span></button>
+    <button class="nav" data-v="spend">
+      <svg width="19" height="19" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 16.5V9m4.7 7.5V4.5m4.6 12v-5m4.7 5V7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      <span><span class="lab">Spend</span><span class="lab-m">Spend</span><span class="des">What it actually cost</span></span>
+      <span class="kb">2</span></button>
+    <button class="nav" data-v="traffic">
+      <svg width="19" height="19" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M2.5 6.5h12m0 0-3-3m3 3-3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M17.5 13.5h-12m0 0 3-3m-3 3 3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span><span class="lab">Traffic</span><span class="lab-m">Traffic</span><span class="des">Every call to the model</span></span>
+      <span class="kb">3</span></button>
+    <button class="nav" data-v="context">
+      <svg width="19" height="19" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="2.5" y="4" width="15" height="12" rx="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M7 4v12M12.5 4v12" stroke="currentColor" stroke-width="1.6"/></svg>
+      <span><span class="lab">Context</span><span class="lab-m">Context</span><span class="des">What fills the window</span></span>
+      <span class="kb">4</span></button>
+    <button class="nav" data-v="tools">
+      <svg width="19" height="19" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 2.5 16.5 5.5v4.2c0 4-2.7 6.9-6.5 7.8-3.8-.9-6.5-3.8-6.5-7.8V5.5L10 2.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="m7.4 9.9 1.9 1.9 3.5-3.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span><span class="lab">Optimize</span><span class="lab-m">Optimize</span><span class="des">Remove unused context &amp; tools</span></span>
+      <span class="kb">5</span></button>
+    <button class="nav" data-v="guard">
+      <svg width="19" height="19" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 2.5 16.5 5.5v4.2c0 4-2.7 6.9-6.5 7.8-3.8-.9-6.5-3.8-6.5-7.8V5.5L10 2.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      <span><span class="lab">Guard</span><span class="lab-m">Guard</span><span class="des">Task authority envelope</span></span>
+      <span class="kb">6</span></button>
+    <button class="nav" data-v="trace">
+      <svg width="19" height="19" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="5" cy="4.5" r="2" stroke="currentColor" stroke-width="1.6"/><circle cx="5" cy="15.5" r="2" stroke="currentColor" stroke-width="1.6"/><circle cx="15" cy="10" r="2" stroke="currentColor" stroke-width="1.6"/><path d="M5 6.5v7M7 4.5h4c1.1 0 2 .9 2 2v1.6M7 15.5h4c1.1 0 2-.9 2-2v-1.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <span><span class="lab">Flight Recorder</span><span class="lab-m">Flight</span><span class="des">What happened and why</span></span>
+      <span class="kb">7</span></button>
+    <div class="rail-foot" id="railFoot">Attaching to the proxy…</div>
+  </nav>
+
+  <main class="main" id="main"><div class="wrap" id="view"></div></main>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="Call inspector">
+  <div class="dhead">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="flex:1;min-width:0">
+        <div class="eyebrow" style="margin:0">Call inspector</div>
+        <div style="font-size:16px;font-weight:700;letter-spacing:-.02em" id="dTitle">—</div>
+      </div>
+      <button class="btn" id="dPrev" title="Previous call (k)">↑</button>
+      <button class="btn" id="dNext" title="Next call (j)">↓</button>
+      <button class="x" id="dClose" aria-label="Close"><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>
+    </div>
+    <div style="display:flex;gap:6px;margin-top:11px;flex-wrap:wrap" id="dChips"></div>
+  </div>
+  <div class="dbody" id="dBody"></div>
+</aside>
+
+<div class="cmdk" id="cmdk">
+  <div class="cmdk-box">
+    <input id="cmdkIn" placeholder="Jump to a view, call, tool, or action…" autocomplete="off" spellcheck="false">
+    <div class="cmdk-list" id="cmdkList"></div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+<script>
+/* ══════════════════════════════════════════════════════════════════════════
+   LIVE DATA — Iris is fed by .claude/proxy.mjs, not by a baked snapshot.
+
+     GET  /__meta       what this proxy is recording (repo, port, session)
+     GET  /__config     the deny list in .claude/settings.json (authoritative)
+     POST /__config     {tool, denied} — what the Publish button writes
+     GET  /__tooldocs   full tool schemas captured off the wire
+     GET  /__events     SSE of every request/response, replayed on connect
+
+   DATA keeps the exact shape the views below expect. Its arrays are mutated in
+   place and never reassigned, because the render code aliases them directly
+   (const C=DATA.calls, TOOLS=DATA.tools, …).
+   ══════════════════════════════════════════════════════════════════════════ */
+const DATA={
+  deny:[], calls:[], tools:[], trace:[], docs:{},
+  meta:{session:'…', repo:'workspace', agent:'Claude Code', model:'—',
+        pricing:{in:0,out:0,cw5:0,cw1:0,cr:0,tier:null,note:null}, start:null, end:null},
+};
+/* Time-windowed calls (live capture + spend ledger). Filled in recalc(). */
+const VW=[];
+const LIVE={
+  connected:false, port:null, upstream:null, settingsPath:null,
+  denySet:new Set(), docTok:{}, wireDesc:{}, seen:0, skipped:0, lastEventAt:null,
+  authRequired:false,
+};
+const GUARD={ env:null, proposal:null, decisions:[], signals:[], stats:{allow:0,ask:0,deny:0} };
+function refreshGuard(){
+  return fetch('/__authority').then(r=>r.json()).then(d=>{
+    GUARD.env=d.envelope||null;
+    GUARD.proposal=d.proposal||null;
+    GUARD.signals=d.signals||[];
+  }).catch(()=>{}).then(()=>
+    fetch('/__decisions').then(r=>r.json()).then(d=>{
+      GUARD.decisions=d.decisions||[];
+      GUARD.stats={allow:0,ask:0,deny:0};
+      for(const x of GUARD.decisions){
+        const k=String(x.decision||'').toLowerCase();
+        if(k==='allow') GUARD.stats.allow++;
+        else if(k==='ask') GUARD.stats.ask++;
+        else if(k==='deny') GUARD.stats.deny++;
+      }
+    }).catch(()=>{})
+  );
+}
+
+/* ── Price book ─────────────────────────────────────────────────────────────
+   Anthropic list prices, USD per 1M tokens. Verified 2026-07-27 against
+   platform.claude.com/docs/en/docs/about-claude/pricing
+
+     in  base input        cr   cache hit / refresh  (0.1x input)
+     cw5 5-minute write    (1.25x input)
+     cw1 1-hour write      (2x input)   ← Claude Code uses this TTL, and it is
+     out output                           NOT the same price as a 5m write
+
+   Matched longest-id-first against the model on the wire, so a new generation can
+   never silently inherit the previous one's prices — an unknown id is reported as
+   unpriced instead of being guessed at. Long context needs no tier: Claude 4.6 and
+   later bill the full 1M window at standard rates. */
+const PRICE_BOOK=[
+  {id:'claude-fable-5',    label:'Fable 5',    in:10,  cw5:12.50, cw1:20,   cr:1,    out:50},
+  {id:'claude-mythos-5',   label:'Mythos 5',   in:10,  cw5:12.50, cw1:20,   cr:1,    out:50},
+  {id:'claude-opus-5',     label:'Opus 5',     in:5,   cw5:6.25,  cw1:10,   cr:0.50, out:25},
+  {id:'claude-opus-4-8',   label:'Opus 4.8',   in:5,   cw5:6.25,  cw1:10,   cr:0.50, out:25},
+  {id:'claude-opus-4-7',   label:'Opus 4.7',   in:5,   cw5:6.25,  cw1:10,   cr:0.50, out:25},
+  {id:'claude-opus-4-6',   label:'Opus 4.6',   in:5,   cw5:6.25,  cw1:10,   cr:0.50, out:25},
+  {id:'claude-opus-4-5',   label:'Opus 4.5',   in:5,   cw5:6.25,  cw1:10,   cr:0.50, out:25},
+  {id:'claude-opus-4-1',   label:'Opus 4.1',   in:15,  cw5:18.75, cw1:30,   cr:1.50, out:75},
+  {id:'claude-opus-4',     label:'Opus 4',     in:15,  cw5:18.75, cw1:30,   cr:1.50, out:75},
+  /* Sonnet 5 runs at introductory pricing through 2026-08-31, then steps up. */
+  {id:'claude-sonnet-5',   label:'Sonnet 5',   in:2,   cw5:2.50,  cw1:4,    cr:0.20, out:10,
+     until:'2026-09-01T00:00:00Z', after:{in:3, cw5:3.75, cw1:6, cr:0.30, out:15}},
+  {id:'claude-sonnet-4-6', label:'Sonnet 4.6', in:3,   cw5:3.75,  cw1:6,    cr:0.30, out:15},
+  {id:'claude-sonnet-4-5', label:'Sonnet 4.5', in:3,   cw5:3.75,  cw1:6,    cr:0.30, out:15},
+  {id:'claude-sonnet-4',   label:'Sonnet 4',   in:3,   cw5:3.75,  cw1:6,    cr:0.30, out:15},
+  {id:'claude-haiku-4-5',  label:'Haiku 4.5',  in:1,   cw5:1.25,  cw1:2,    cr:0.10, out:5},
+  {id:'claude-haiku-3-5',  label:'Haiku 3.5',  in:0.80,cw5:1,     cw1:1.60, cr:0.08, out:4},
+].sort((a,b)=>b.id.length-a.id.length);
+
+/* Fast mode (research preview) replaces the base rates on Opus 5 / 4.8; the cache
+   multipliers then apply on top of the fast base, not the standard one. */
+const FAST_MODE={'claude-opus-5':{in:10,out:50},'claude-opus-4-8':{in:10,out:50}};
+const CACHE_MULT={cw5:1.25, cw1:2, cr:0.1};
+
+/* ── Long context ───────────────────────────────────────────────────────────
+   Kept as a mechanism with nothing in it, deliberately. Every model in the book
+   above that has a 1M-token window (Opus 5/4.8/4.7/4.6, Sonnet 5, Sonnet 4.6,
+   Fable 5, Mythos 5) bills the full window at standard rates — the docs are
+   explicit: "long-context requests are billed at standard pricing", and 1M is the
+   default with no beta header needed. The remaining models have a 200k window, so
+   they can't exceed the threshold in the first place.
+
+   106 of the calls in this workspace's logs exceed 200k input tokens and are all
+   correctly billed at standard rates. If a premium tier is ever reintroduced, add
+   `longCtx:{over:200000, in:…, cw5:…, cw1:…, cr:…, out:…}` to that model's row and
+   the arithmetic below picks it up — rather than someone having to notice. No rates
+   are invented here: an absent tier means the published price has none. */
+const LONG_CTX_THRESHOLD=200000;
+
+/* ── Server-side tools ──────────────────────────────────────────────────────
+   Billed on top of tokens, reported in usage.server_tool_use. Web fetch is free.
+   Code execution bills by container-time (with 1,550 free hours/month), which the
+   request count alone cannot price — so it is surfaced, never guessed at. */
+const SERVER_TOOL_RATES={
+  web_search_requests:{usd:0.01, label:'Web search', note:'$10 per 1,000 searches'},
+  web_fetch_requests: {usd:0,    label:'Web fetch',  note:'no additional charge'},
+};
+const SERVER_TOOL_UNPRICED={
+  code_execution_requests:{label:'Code execution',note:'billed by container-hour, not per request'},
+};
+/* Returns {usd, lines:[{label,count,usd,note}], unpriced:[…]} for one call. */
+function serverToolFees(st){
+  const out={usd:0,lines:[],unpriced:[]};
+  if(!st||typeof st!=='object') return out;
+  for(const [key,n] of Object.entries(st)){
+    if(!n) continue;
+    const r=SERVER_TOOL_RATES[key];
+    if(r){ const usd=n*r.usd; out.usd+=usd; out.lines.push({label:r.label,count:n,usd,note:r.note}); continue; }
+    const u=SERVER_TOOL_UNPRICED[key];
+    out.unpriced.push({label:u?u.label:key,count:n,note:u?u.note:'no published per-request rate'});
+  }
+  return out;
+}
+
+/* `billing` merges what the request asked for and what the response says was applied:
+   {speed, inferenceGeo, batch, serviceTier}. `inputTokens` selects the long-context
+   tier where a model has one. */
+function rateFor(model,billing,inputTokens){
+  if(!model) return null;
+  /* strip a beta/context suffix ("claude-opus-5[1m]") and any dated snapshot */
+  const id=String(model).toLowerCase().replace(/\[.*$/,'');
+  const hit=PRICE_BOOK.find(r=>id.startsWith(r.id));
+  if(!hit) return null;
+  let r={tier:hit.label,in:hit.in,cw5:hit.cw5,cw1:hit.cw1,cr:hit.cr,out:hit.out,note:null,
+         longCtx:false, unknownTier:null};
+  const add=n=>{ r.note=(r.note?r.note+' · ':'')+n; };
+  if(hit.until&&Date.now()>=Date.parse(hit.until)) Object.assign(r,hit.after);
+
+  const b=billing||{};
+  /* long context: only applies where the published price defines a tier */
+  if(hit.longCtx&&inputTokens>(hit.longCtx.over??LONG_CTX_THRESHOLD)){
+    Object.assign(r,hit.longCtx); r.longCtx=true; add('long context >'+k(hit.longCtx.over??LONG_CTX_THRESHOLD));
+  }
+  const fast=b.speed==='fast'&&FAST_MODE[hit.id];
+  if(fast){
+    r.in=fast.in; r.out=fast.out;
+    r.cw5=r.in*CACHE_MULT.cw5; r.cw1=r.in*CACHE_MULT.cw1; r.cr=r.in*CACHE_MULT.cr;
+    add('fast mode');
+  }
+  if(b.batch){ for(const key of ['in','cw5','cw1','cr','out']) r[key]*=0.5; add('batch −50%'); }
+  if(b.inferenceGeo==='us'){ for(const key of ['in','cw5','cw1','cr','out']) r[key]*=1.1; add('us residency ×1.1'); }
+  /* Anything other than the standard service tier may carry rates we don't hold.
+     Surface it instead of quietly applying standard prices to a priority request. */
+  if(b.serviceTier&&b.serviceTier!=='standard'&&b.serviceTier!=='not_available'){
+    r.unknownTier=b.serviceTier; add('service tier: '+b.serviceTier+' (rates unverified)');
+  }
+  return r;
+}
+
+/* Total input tokens on a call — the figure the long-context tier is keyed on. */
+const inTok=c=>(c.in||0)+(c.cr||0)+(c.cw||0);
+/* The rate card that actually applied to this specific call. */
+const rateOf=c=>rateFor(c.model,c.billing,inTok(c));
+
+/* Cost of one call: tokens at their category rates, plus any server-side tool fees.
+   Returns null — not 0 — when the model is not in the book, so an unpriced call is
+   visibly unpriced instead of quietly free. */
+function costOf(c){
+  const r=rateOf(c); if(!r) return null;
+  return tokenCostOf(c) + serverToolFees(c.serverTools).usd;
+}
+function tokenCostOf(c){
+  const r=rateOf(c); if(!r) return null;
+  return ((c.in||0)*r.in + (c.cr||0)*r.cr + (c.cw5||0)*r.cw5 + (c.cw1||0)*r.cw1 + (c.out||0)*r.out)/1e6;
+}
+/* Just the input side — what the prefix costs, used to price the recurring tool tax. */
+function inputCostOf(c){
+  const r=rateOf(c); if(!r) return null;
+  return ((c.in||0)*r.in + (c.cr||0)*r.cr + (c.cw5||0)*r.cw5 + (c.cw1||0)*r.cw1)/1e6;
+}
+/* Caching is two opposing numbers, so don't report one and call it the saving:
+     avoided = those cache reads at full input price
+     premium = what the writes cost ABOVE full input price to make that possible
+   net = avoided − premium is what caching is actually worth on this call. */
+function cacheEconomicsOf(c){
+  const r=rateOf(c); if(!r) return {avoided:0,premium:0,net:0};
+  const avoided=(c.cr||0)*(r.in-r.cr)/1e6;
+  const premium=((c.cw5||0)*(r.cw5-r.in)+(c.cw1||0)*(r.cw1-r.in))/1e6;
+  return {avoided,premium,net:avoided-premium};
+}
+
+/* Keep memory bounded — the proxy can run for days. */
+const MAX_CALLS=400;
+
+/* A real model turn. count_tokens probes are not billed and carry no usage. */
+const isModelCall=e=>e.method==='POST'&&String(e.url).includes('/v1/messages')
+  &&!String(e.url).includes('count_tokens');
+
+const callIndex={};                    // proxy request id -> index into DATA.calls
+function reindexCalls(){
+  for(const k in callIndex) delete callIndex[k];
+  DATA.calls.forEach((c,i)=>{ callIndex[c.uid||c.id]=i; });
+}
+
+/* The newest real agent turn — what the ribbon, the context budget and the trace
+   all describe. Claude Code also issues calls that are billed but are not a turn
+   of agent work: summarisers and classifiers that carry a system prompt and no
+   tool set at all. Since this whole UI is about the tool tax, prefer the newest
+   call that actually shipped a tool set, and only fall back if none has. */
+function pickTurn(src){
+  const rev=src.slice().reverse();
+  return rev.find(c=>!c.fromHist&&c.toolCount>1)
+      || rev.find(c=>!c.fromHist&&c.sysTok>0)
+      || rev.find(c=>!c.fromHist)
+      || src[src.length-1]
+      || null;
+}
+function latestLiveCall(){
+  return pickTurn(DATA.calls);
+}
+function latestCall(){
+  return pickTurn(VW.length?VW:DATA.calls);
+}
+function latestIndex(){
+  const c=latestCall();
+  if(!c) return -1;
+  const i=VW.findIndex(x=>(x.uid||x.id)===(c.uid||c.id));
+  return i>=0?i:-1;
+}
+
+/* ---- proxy "request" event -> a DATA.calls row --------------------------- */
+function ingestRequest(e){
+  if(!isModelCall(e)){ LIVE.skipped++; return false; }
+  const p=e.preview||{};
+  const call={
+    id:e.id, uid:e.uid||e.id, time:e.time, model:e.model||'—',
+    msgCount:e.msgCount||0, toolCount:e.toolCount||0, toolTotal:e.toolTotal||0,
+    sysTok:e.systemTokens||0, msgTok:e.msgTokens||0,
+    /* Raw chars/4 estimates, kept untouched. The displayed sysTok/toolTotal/msgTok
+       above are these scaled to the token count the API actually reported — see
+       applyCal(). Never price off the raw figures: they run ~35% low. */
+    est:{sys:e.systemTokens||0, tools:e.toolTotal||0, msg:e.msgTokens||0,
+         total:(e.systemTokens||0)+(e.toolTotal||0)+(e.msgTokens||0)},
+    cal:null, calUsed:1,
+    billing:e.billing||null,
+    status:null, ms:null, in:0, cr:0, cw:0, cw5:0, cw1:0, out:0, think:0,
+    cost:null, inCost:null, saved:0, cachePremium:0, cacheNet:0, error:null,
+    breaks:p.cacheBreakpoints||0,
+    params:p.params||{max_tokens:null,temperature:null,stream:false,thinking:null},
+    sys:((p.system&&p.system.blocks)||[]).map(b=>({c:b.chars||0,cache:!!b.cache,x:b.text||''})),
+    tools:(p.tools||[]).map(t=>({name:t.name,tokens:t.tokens||0,raw:t.tokens||0,bytes:t.bytes||0})),
+    msgs:(p.messages||[]).map(m=>({r:m.role||'?',
+      b:(m.blocks||[]).map(b=>({t:b.type||'text',n:b.name||null,c:b.chars||0,x:b.text||'',e:!!b.isError}))})),
+    trace:(p.trace||[]).map(t=>({i:t.i,tool:t.tool,desc:t.desc||'',arg:t.arg||'',m:t.m})),
+  };
+  if(call.trace.length) mergeActions(call.trace.map(t=>({...t,k:actKey(t)})), call.time);
+  const key=e.uid||e.id;
+  const at=callIndex[key];
+  if(at!=null){ DATA.calls[at]=call; return true; }     // replay/duplicate
+  DATA.calls.push(call);
+  LIVE.seen++;
+  if(DATA.calls.length>MAX_CALLS){
+    const drop=DATA.calls.length-MAX_CALLS;
+    DATA.calls.splice(0,drop);
+    if(typeof S==='object'&&S) S.sel=Math.max(0,S.sel-drop);   // keep the drawer anchored
+  }
+  reindexCalls();
+  return true;
+}
+
+/* ---- proxy "response" event -> usage, latency and price for that row ----- */
+function ingestResponse(e){
+  const at=callIndex[e.uid||e.id]; if(at==null) return false;
+  const c=DATA.calls[at];
+  c.status=e.status??null;
+  c.ms=e.ms??null;
+  c.in=e.inputTokens||0; c.cr=e.cacheRead||0; c.cw=e.cacheCreate||0; c.out=e.outputTokens||0;
+  c.think=e.thinkingTokens||0;
+  c.serverTools=e.serverTools||null;
+  c.iterCount=e.iterCount||null;
+  /* The response is authoritative about which rate modifiers were applied; the
+     request only says what was asked for. Merge, response winning. */
+  c.billing={...(c.billing||{}),
+    serviceTier:e.serviceTier??null,
+    inferenceGeo:e.inferenceGeo==='us'?'us':(c.billing?.inferenceGeo??null)};
+  /* TTL split drives the write price. Older proxies didn't report it — fall back to
+     the 5m default so the total still reconciles with cacheCreate. */
+  c.cw1=e.cacheWrite1h||0;
+  c.cw5=e.cacheWrite5m!=null?e.cacheWrite5m:Math.max(0,c.cw-c.cw1);
+  /* exact calibration for this call, now that the true input total is known */
+  c.cal=c.est.total?(c.in+c.cr+c.cw)/c.est.total:null;
+  applyCal(c);
+  c.cost=costOf(c);
+  c.inCost=inputCostOf(c);
+  const ce=cacheEconomicsOf(c);
+  c.saved=ce.avoided; c.cachePremium=ce.premium; c.cacheNet=ce.net;
+  c.error=e.error||null;
+  c.updatedAt=Date.now();       // lets an open inspector notice it went stale
+  return true;
+}
+
+/* ── Token calibration ──────────────────────────────────────────────────────
+   Iris sizes the system prompt, each tool schema and the history by counting
+   characters and dividing by four. That is the only option available before a
+   response arrives, and it is wrong: measured against reported usage over 488
+   recorded calls the real count is 1.55x higher on Opus 5 (p10 1.53, p90 1.61) —
+   Claude 4.7 and later use a tokenizer that produces materially more tokens per
+   character. Left uncorrected, every token figure and every dollar derived from
+   one reads about 35% low.
+
+   No tokenizer is needed to fix it. The reported input total (uncached + cache
+   read + cache write) covers exactly the same three things the estimate covers, so
+   the ratio between them is the correction — measured per call, exactly. Calls
+   still in flight borrow the session's factor until their own response lands. */
+function applyCal(c){
+  const f=(c.cal ?? T.cal ?? 1);
+  c.calUsed=f;
+  c.sysTok=Math.round(c.est.sys*f);
+  c.toolTotal=Math.round(c.est.tools*f);
+  c.msgTok=Math.round(c.est.msg*f);
+  for(const t of c.tools) t.tokens=Math.round((t.raw||0)*f);
+}
+
+/* ---- deny list (authoritative: .claude/settings.json) -------------------- */
+function applyDeny(list){
+  LIVE.denySet=new Set(list||[]);
+  DATA.deny.length=0; DATA.deny.push(...LIVE.denySet);
+}
+
+/* ---- captured schemas: the real description + input_schema off the wire --- */
+function applyToolDocs(list){
+  (list||[]).forEach(t=>{
+    if(!t||!t.name) return;
+    DATA.docs[t.name]=(t.desc||'(schema shipped with no description)')
+      +(t.schema?'\n\ninput_schema:\n'+t.schema:'');
+    LIVE.docTok[t.name]={tokens:t.tokens||0,bytes:t.bytes||0};
+    if(t.desc) LIVE.wireDesc[t.name]=t.desc;
+  });
+}
+
+/* ---- tool inventory ------------------------------------------------------
+   Union of: every schema that shipped, everything named in the deny list, and
+   everything we hold a captured schema for. Object identity is preserved so a
+   rebuild never disturbs anything holding a row. Call counts are filled in by
+   recalc() from the trace. */
+function rebuildInventory(){
+  const size={};
+  Object.keys(LIVE.docTok).forEach(n=>{ size[n]=LIVE.docTok[n]; });
+  DATA.calls.forEach(c=>c.tools.forEach(t=>{ size[t.name]={tokens:t.tokens,bytes:t.bytes}; }));
+  LIVE.denySet.forEach(n=>{ if(!size[n]) size[n]={tokens:0,bytes:0}; });
+  const byName={}; DATA.tools.forEach(t=>{ byName[t.name]=t; });
+  const rows=Object.keys(size).sort().map(n=>{
+    const t=byName[n]||{name:n,calls:0};
+    t.tokens=size[n].tokens; t.bytes=size[n].bytes;
+    t.on=!LIVE.denySet.has(n);
+    if(t.calls==null) t.calls=0;
+    return t;
+  });
+  DATA.tools.length=0; DATA.tools.push(...rows);
+}
+
+/* ---- session meta: model and pricing follow the newest real turn --------- */
+function syncMeta(){
+  const c=latestCall();
+  if(c&&c.model&&c.model!=='—') DATA.meta.model=c.model;
+  DATA.meta.billing=c?c.billing:null;
+  const r=rateFor(DATA.meta.model,DATA.meta.billing);
+  DATA.meta.pricing=r
+    ? {in:r.in,out:r.out,cw5:r.cw5,cw1:r.cw1,cr:r.cr,tier:r.tier,note:r.note}
+    : {in:0,out:0,cw5:0,cw1:0,cr:0,tier:null,note:null};
+  if(DATA.calls.length){
+    DATA.meta.start=DATA.calls[0].time;
+    DATA.meta.end=DATA.calls[DATA.calls.length-1].time;
+  }
+}
+</script>
+<script>
+/* ── Tool catalogue ────────────────────────────────────────────────────────
+   tier decides what is safe to switch off:
+     core     — the agent cannot do basic work without it
+     standard — useful, safe to drop if you don't need that capability
+     optional — convenience or integration; usually the first thing to trim
+   Blurbs are written in plain language. Where Iris actually captured the
+   schema text off the wire, the row can expand to show the real description. */
+const GROUPS=[
+  {id:'files',       t:'Files & shell',            s:'Reading, writing and running things on this machine. Take these away and the agent cannot do the job.'},
+  {id:'delegation',  t:'Delegation & background work', s:'Handing sub-tasks to other agents and collecting their results.'},
+  {id:'worktree',    t:'Isolated worktrees',       s:'Working in a throwaway git checkout so your branch stays clean.'},
+  {id:'web',         t:'Web access',               s:'Reaching outside your machine for information.'},
+  {id:'planning',    t:'Planning & prompts',       s:'Structuring work and stopping to ask you things.'},
+  {id:'automation',  t:'Notifications & scheduling', s:'Letting the agent run or speak up when you are not watching.'},
+  {id:'integrations',t:'Workspace integrations',   s:'Connections to other products and services.'},
+];
+const TOOLMETA={
+  Bash:        {g:'files',tier:'core',    d:'Runs shell commands on your machine — ls, grep, find, git, test runners.'},
+  Read:        {g:'files',tier:'core',    d:'Opens a file and returns its contents.'},
+  Write:       {g:'files',tier:'core',    d:'Creates a new file, or overwrites one that already exists.'},
+  Edit:        {g:'files',tier:'core',    d:'Replaces an exact string inside a file it has already read.'},
+  Glob:        {g:'files',tier:'core',    d:'Finds files by name pattern, like **/*.ts.'},
+  Grep:        {g:'files',tier:'core',    d:'Searches file contents by regular expression.'},
+  NotebookEdit:{g:'files',tier:'optional',d:'Edits a single cell inside a Jupyter notebook.'},
+  Agent:       {g:'delegation',tier:'standard',d:'Hands a sub-task to a separate agent and keeps only its conclusion, not the files it read.'},
+  TaskOutput:  {g:'delegation',tier:'standard',d:'Reads output from a background task the agent started earlier.'},
+  TaskStop:    {g:'delegation',tier:'standard',d:'Stops a background task that is still running.'},
+  Skill:       {g:'delegation',tier:'standard',d:'Loads a saved instruction pack before starting a task.'},
+  EnterWorktree:{g:'worktree',tier:'standard',d:'Opens an isolated git worktree so edits never touch your working branch.'},
+  ExitWorktree:{g:'worktree',tier:'standard',d:'Closes the worktree and either merges the work or throws it away.'},
+  WebSearch:   {g:'web',tier:'standard',d:'Searches the web for current information.'},
+  WebFetch:    {g:'web',tier:'standard',d:'Downloads one specific URL and reads it.'},
+  TodoWrite:   {g:'planning',tier:'optional',d:'Keeps a visible checklist while the agent works through a long task.'},
+  EnterPlanMode:{g:'planning',tier:'optional',d:'Switches the agent to read-only so it plans before it changes anything.'},
+  ExitPlanMode:{g:'planning',tier:'optional',d:'Leaves planning and asks you to approve the plan.'},
+  AskUserQuestion:{g:'planning',tier:'optional',d:'Pauses the run to ask you a multiple-choice question.'},
+  SendMessage: {g:'automation',tier:'optional',d:'Sends a message to another agent or a chat channel.'},
+  PushNotification:{g:'automation',tier:'optional',d:'Pushes a notification to your phone or desktop.'},
+  RemoteTrigger:{g:'automation',tier:'optional',d:'Lets an outside system start a run without you.'},
+  ScheduleWakeup:{g:'automation',tier:'optional',d:'Wakes the agent up at a time you set.'},
+  CronCreate:  {g:'automation',tier:'optional',d:'Creates a recurring scheduled run.'},
+  CronDelete:  {g:'automation',tier:'optional',d:'Deletes a scheduled run.'},
+  CronList:    {g:'automation',tier:'optional',d:'Lists the scheduled runs that exist.'},
+  ReportFindings:{g:'automation',tier:'optional',d:'Files a structured findings report at the end of a run.'},
+  Monitor:     {g:'integrations',tier:'optional',d:'Streams this proxy\u2019s own traffic back to the agent so it can read its own telemetry.'},
+  DesignSync:  {g:'integrations',tier:'optional',d:'Syncs design files from a connected design tool.'},
+  ShareOnboardingGuide:{g:'integrations',tier:'optional',d:'Shares a setup guide with a teammate.'},
+};
+/* Unknown tool (an MCP server, a plugin, a new built-in): fall back to the first
+   sentence of the description Iris actually read off the wire. */
+function meta(n){
+  if(TOOLMETA[n]) return TOOLMETA[n];
+  const wire=LIVE.wireDesc[n];
+  const d=wire
+    ? wire.split(/(?<=\.)\s|\n/)[0].trim().slice(0,180)
+    : 'No description captured. Iris has not seen this schema ship yet.';
+  return {g:'integrations',tier:'optional',d};
+}
+const TIER={core:{t:'Core',c:'wire',h:'Required for basic work'},standard:{t:'Standard',c:'vio',h:'Safe to drop if unused'},optional:{t:'Optional',c:'',h:'Usually the first to trim'}};
+/* ═══════════════ Iris for Claude Code ═══════════════ */
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const fmt=n=>n==null?'—':Math.round(n).toLocaleString('en-US');
+const k=n=>n==null?'—':n>=1e6?(n/1e6).toFixed(2)+'M':n>=1e3?(n/1e3).toFixed(1)+'k':String(Math.round(n));
+/* null means "not priced" and must never render as $0.00. Sub-cent figures get 4dp,
+   because a per-turn tool cost is often fractions of a cent and rounding it to
+   $0.00 is the difference between a real number and a shrug. */
+const usd=n=>{
+  if(n==null||!isFinite(n)) return '—';
+  const a=Math.abs(n);
+  return '$'+(a<0.01?n.toFixed(4):a<1?n.toFixed(3):n.toFixed(2));
+};
+const ms=n=>n==null?'—':n<1000?n+'ms':(n/1000).toFixed(n<10000?1:0)+'s';
+const esc=s=>(s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function irisToken(){
+  try{
+    const q=new URLSearchParams(location.search).get('iris_token');
+    if(q){
+      sessionStorage.setItem('iris.uiToken',q);
+      const u=new URL(location.href);
+      u.searchParams.delete('iris_token');
+      history.replaceState({},'',u.pathname+u.search+u.hash);
+      return q;
+    }
+    return sessionStorage.getItem('iris.uiToken')||localStorage.getItem('iris.uiToken')||'';
+  }catch(err){
+    console.warn('iris token storage unavailable',err);
+    return '';
+  }
+}
+function irisHeaders(extra){
+  const h=Object.assign({'content-type':'application/json'},extra||{});
+  const t=irisToken();
+  if(t) h['X-Iris-Token']=t;
+  return h;
+}
+function authBlocked(){ return !!(LIVE.authRequired && !irisToken()); }
+const hhmm=t=>t&&t.length>=19?t.slice(11,19):'—';
+
+const C=DATA.calls, TOOLS=DATA.tools, TRACE=DATA.trace, M=DATA.meta;
+
+const S={ view:'overview', sel:-1, pending:{}, order:'tokens', filter:'all', tf:'all', unlockCore:false, follow:true, proj:null,
+           tw:'today', tt:'all', tracePage:1, ctxTab:'breakdown' };
+const isOn=t=> S.pending[t.name]!==undefined ? S.pending[t.name] : t.on;
+const pendCount=()=>Object.keys(S.pending).length;
+
+/* ── session rollups ───────────────────────────────────────────────────
+   Every number here is measured, not modelled. Recomputed from scratch on each
+   event; T keeps its identity so the views can close over it. */
+const T={};
+function recalc(){
+  /* Order matters: the session calibration factor is derived from raw estimates and
+     real usage, then applied to every call, and only then does the tool inventory
+     read those (now corrected) per-tool token counts. */
+  let estSum=0, actSum=0;
+  for(const c of C){
+    if(c.status==null||!c.est.total) continue;
+    estSum+=c.est.total; actSum+=c.in+c.cr+c.cw;
+  }
+  T.cal=estSum?actSum/estSum:null;
+  T.calFrom=estSum?C.filter(c=>c.status!=null&&c.est.total).length:0;
+  for(const c of C) applyCal(c);
+
+  rebuildInventory();
+  if(HIST.records.length&&!HIST.days.length) digestHistory();
+
+  /* Optimize inventory is the live session, not the time window: a historical
+     ledger row has no tool-call trace, and mixing it in would zero every count. */
+  const liveTurn=latestLiveCall();
+  TRACE.length=0; if(liveTurn) TRACE.push(...(liveTurn.trace||[]));
+  const used={}; TRACE.forEach(t=>{ used[t.tool]=(used[t.tool]||0)+1; });
+  Object.keys(used).forEach(n=>{
+    if(!TOOLS.find(t=>t.name===n)) TOOLS.push({name:n,tokens:0,bytes:0,calls:0,on:!LIVE.denySet.has(n)});
+  });
+  TOOLS.forEach(t=>{ t.calls=used[t.name]||0; });
+
+  VW.length=0;
+  VW.push(...scopedCalls());
+  const histWin=scopedHist();
+  Object.assign(HW, digestRecords(histWin));
+  syncMeta();
+
+  const done=VW.filter(x=>x.status!=null);
+  const lat=done.map(x=>x.ms).filter(v=>v!=null).sort((a,b)=>a-b);
+  const sum=f=>VW.reduce((a,x)=>a+(f(x)||0),0);
+  Object.assign(T,{
+    calls:VW.length,
+    done:done.length,
+    shipped:sum(x=>x.in+x.cr+x.cw),
+    out:sum(x=>x.out),
+    think:sum(x=>x.think),
+    priced:VW.filter(x=>x.cost!=null).length,
+    inputCost:sum(x=>x.inCost),
+    saved:sum(x=>x.saved),
+    cachePremium:sum(x=>x.cachePremium),
+    cacheNet:sum(x=>x.cacheNet),
+    cacheR:sum(x=>x.cr),
+    cacheW:sum(x=>x.cw),
+    cacheW5:sum(x=>x.cw5),
+    cacheW1:sum(x=>x.cw1),
+    /* calls whose model isn't in the price book — excluded from every $ figure */
+    unpriced:VW.filter(x=>x.status!=null&&x.cost==null).length,
+    /* server-side tool fees, billed on top of tokens */
+    toolFees:VW.reduce((a,x)=>a+serverToolFees(x.serverTools).usd,0),
+    /* calls big enough to hit a long-context tier, and how many actually got one */
+    over200k:VW.filter(x=>inTok(x)>LONG_CTX_THRESHOLD).length,
+    longCtx:VW.filter(x=>rateOf(x)?.longCtx).length,
+    lat,
+  });
+  T.cost=T.priced?VW.reduce((a,x)=>a+(x.cost||0),0):null;
+
+  /* aggregate server-tool call counts for the window, priced and unpriced alike */
+  const stAll={};
+  VW.forEach(x=>{ if(x.serverTools) for(const [key,n] of Object.entries(x.serverTools)) stAll[key]=(stAll[key]||0)+(n||0); });
+  T.serverTools=stAll;
+
+  /* Turn rate, measured off the capture — the basis for any monthly projection.
+     Wall-clock span is the wrong denominator: a log spanning several days averages in
+     nights, lunches and meetings, which understates the pace you actually work at by
+     an order of magnitude. So sum the gaps between consecutive calls and drop any gap
+     longer than IDLE_GAP — what remains is active time, and the turns that happened
+     inside it. Under a minute of active time says nothing, so report nothing. */
+  T.spanHours=(VW.length>1?Date.parse(VW[VW.length-1].time)-Date.parse(VW[0].time):0)/36e5;
+  let active=0, turns=0;
+  for(let i=1;i<VW.length;i++){
+    const g=Date.parse(VW[i].time)-Date.parse(VW[i-1].time);
+    if(g>0&&g<=IDLE_GAP_MS){ active+=g; turns++; }
+  }
+  T.activeHours=active/36e5;
+  T.idleHours=Math.max(0,T.spanHours-T.activeHours);
+  T.turnsPerHour=active>=60000?turns/T.activeHours:null;
+  T.p50=lat.length?lat[Math.floor(lat.length*.5)]:null;
+  T.p95=lat.length?lat[Math.min(lat.length-1,Math.floor(lat.length*.95))]:null;
+  T.hit=(T.cacheR+T.cacheW)?T.cacheR/(T.cacheR+T.cacheW)*100:0;
+
+  /* Rate used to price recurring prefix tokens (tool schemas, system prompt).
+     NOT list input price: the prefix sits inside the cache, so from the second turn
+     on it bills at the cache-read rate — 10% of input. Pricing it at list would
+     overstate the tool tax by roughly 10x. This is the rate the session actually
+     paid per input token, measured, so it accounts for the real read/write mix. */
+  T.rateIn = T.shipped ? T.inputCost/T.shipped : (rateFor(M.model)?.cr ?? 0)/1e6;
+  if(S.sel<0||S.sel>=VW.length) S.sel=Math.max(0,latestIndex());
+}
+/* $ per token for prefix tokens that re-ship every turn. */
+const RATE_IN=()=>T.rateIn||0;
+
+/* ══ Action ledger ══════════════════════════════════════════════════════════
+   Actions come from /__actions, which the proxy stamps and persists so they
+   outlive one conversation — the whole point of an hour/day/week/month filter.
+   Live requests are merged in with the same identity rule so the newest action
+   appears without waiting for a refetch. */
+const ACTS={list:[],total:0,keys:new Set(),loaded:false,newest:null};
+const actKey=a=>`${a.i}|${a.tool}|${(a.arg||'').slice(0,120)}`;
+function mergeActions(rows,stamp){
+  let added=0;
+  for(const a of rows||[]){
+    if(!a||!a.tool) continue;
+    const k=a.k||actKey(a);
+    if(ACTS.keys.has(k)) continue;
+    ACTS.keys.add(k);
+    ACTS.list.push({k,t:a.t||stamp||new Date().toISOString(),i:a.i,tool:a.tool,desc:a.desc||'',arg:a.arg||''});
+    added++;
+  }
+  if(added){
+    ACTS.list.sort((x,y)=>(x.t<y.t?-1:x.t>y.t?1:x.i-y.i));
+    ACTS.newest=ACTS.list[ACTS.list.length-1].t;
+    ACTS.total=ACTS.list.length;
+  }
+  return added;
+}
+/* Calendar windows, not rolling ones: "This week" should mean this week.
+   One control in the header — every view reads S.tw. */
+const TIME_WINDOWS=[
+  {id:'hour',  label:'Last hour', from:()=>Date.now()-36e5},
+  {id:'today', label:'Today',     from:()=>{const d=new Date();d.setHours(0,0,0,0);return +d;}},
+  {id:'week',  label:'This week', from:()=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return +d;}},
+  {id:'month', label:'This month',from:()=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(1);return +d;}},
+  {id:'all',   label:'All',       from:()=>-Infinity},
+];
+const TRACE_WINDOWS=TIME_WINDOWS;
+const timeWindow=()=>TIME_WINDOWS.find(w=>w.id===S.tw)||TIME_WINDOWS[1];
+const traceWindow=timeWindow;
+function twSave(){ try{ localStorage.setItem('iris.timeWindow',S.tw); }catch(e){} }
+function twLoad(){
+  try{
+    const w=localStorage.getItem('iris.timeWindow');
+    if(w&&TIME_WINDOWS.some(x=>x.id===w)) S.tw=w;
+  }catch(e){}
+}
+twLoad();
+function paintTimeFilter(){
+  $$('#twin button').forEach(b=>b.setAttribute('aria-selected',b.dataset.w===S.tw?'true':'false'));
+}
+function inWindow(iso){
+  if(!iso) return false;
+  const t=Date.parse(iso);
+  return Number.isFinite(t)&&t>=timeWindow().from();
+}
+function actionsIn(win){
+  const from=(win||timeWindow()).from();
+  return ACTS.list.filter(a=>Date.parse(a.t)>=from);
+}
+function scopedHist(){ return HIST.records.filter(r=>inWindow(r.time)); }
+function histToCall(r){
+  const ce=cacheEconomicsOf(r);
+  return {
+    id:r.id, uid:r.uid, time:r.time, model:r.model||'—',
+    msgCount:r.msgCount||0, toolCount:r.toolCount||0,
+    toolTotal:r.estTools||0, sysTok:r.estSys||0, msgTok:r.estMsg||0,
+    est:{sys:r.estSys||0, tools:r.estTools||0, msg:r.estMsg||0,
+         total:(r.estSys||0)+(r.estTools||0)+(r.estMsg||0)},
+    cal:null, calUsed:1, billing:r.billing||null,
+    status:r.status??null, ms:r.ms??null,
+    in:r.in||0, cr:r.cr||0, cw:r.cw||0, cw5:r.cw5||0, cw1:r.cw1||0,
+    out:r.out||0, think:r.think||0,
+    cost:r.cost!=null?r.cost:costOf(r), inCost:inputCostOf(r),
+    saved:ce.avoided, cachePremium:ce.premium, cacheNet:ce.net,
+    error:null, breaks:0, params:{max_tokens:null,temperature:null,stream:false,thinking:null},
+    sys:[], tools:[], msgs:[], trace:[], serverTools:r.serverTools||null,
+    fromHist:true, updatedAt:0,
+  };
+}
+function scopedCalls(){
+  const live=C.filter(c=>inWindow(c.time));
+  const liveIds=new Set(live.map(c=>String(c.uid||c.id)));
+  const hist=scopedHist().filter(r=>!liveIds.has(String(r.uid||r.id))).map(histToCall);
+  return hist.concat(live).sort((a,b)=>String(a.time||'').localeCompare(String(b.time||'')));
+}
+
+/* ══ Measured history ═══════════════════════════════════════════════════════
+   /__history is the proxy's own ledger of every billable call it has ever seen,
+   priced with the same functions as the live stream. It exists so monthly spend can
+   be reported rather than extrapolated — the projection is only for answering
+   "what would trimming this save", never for "what did I spend". */
+const HIST={records:[],builtAt:null,building:false,days:[],models:{},expiries:[],
+            cost:0,tok:0,out:0,cacheNet:0,activeDays:0};
+/* Spend ledger rolled up for the header time window (not the full index). */
+const HW={records:[],days:[],models:{},expiries:[],cost:0,tok:0,out:0,cacheNet:0,activeDays:0};
+
+/* Anthropic's published enterprise benchmark, for a sense of scale. */
+const BENCH={perActiveDay:13, perMonthLow:150, perMonthHigh:250};
+
+const dayKey=iso=>{const d=new Date(iso);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
+
+/* A gap longer than the cache lifetime means the next call reprocessed the whole
+   prefix at write price instead of reading it at a tenth of input. The lifetime is
+   an hour on a subscription and five minutes on an API key — inferred here from the
+   TTL the write actually used rather than assumed. */
+function cacheExpiries(recs){
+  const out=[];
+  for(let i=1;i<recs.length;i++){
+    const prev=recs[i-1], cur=recs[i];
+    const gapMin=(Date.parse(cur.time)-Date.parse(prev.time))/60000;
+    if(!(gapMin>0)||!cur.cw) continue;
+    const ttl=cur.cw1>0?60:5;
+    if(gapMin<=ttl) continue;
+    const r=rateOf(cur);
+    const paid=r?((cur.cw5||0)*r.cw5+(cur.cw1||0)*r.cw1)/1e6:null;
+    const asRead=r?cur.cw*r.cr/1e6:null;
+    out.push({time:cur.time,gapMin,ttl,tok:cur.cw,paid,excess:paid!=null?paid-asRead:0});
+  }
+  return out;
+}
+
+function digestRecords(recs){
+  const sorted=recs.slice().sort((a,b)=>(a.time<b.time?-1:1));
+  const byDay=new Map(), models={};
+  let cost=0,tok=0,out=0,net=0;
+  for(const r of sorted){
+    r.cost=costOf(r);
+    const ce=cacheEconomicsOf(r);
+    r.cacheNet=ce.net;
+    const k2=dayKey(r.time);
+    if(!byDay.has(k2)) byDay.set(k2,{day:k2,calls:0,cost:0,in:0,cr:0,cw:0,out:0,think:0,net:0,ms:[],models:{}});
+    const d=byDay.get(k2);
+    d.calls++; d.cost+=r.cost||0; d.in+=r.in; d.cr+=r.cr; d.cw+=r.cw; d.out+=r.out; d.think+=r.think||0; d.net+=ce.net;
+    if(r.ms!=null) d.ms.push(r.ms);
+    d.models[r.model]=(d.models[r.model]||0)+1;
+    models[r.model]=(models[r.model]||0)+(r.cost||0);
+    cost+=r.cost||0; tok+=r.in+r.cr+r.cw; out+=r.out; net+=ce.net;
+  }
+  return {records:sorted, days:[...byDay.values()], models, cost, tok, out, cacheNet:net,
+          activeDays:byDay.size, expiries:cacheExpiries(sorted)};
+}
+function digestHistory(){
+  const d=digestRecords(HIST.records);
+  HIST.days=d.days; HIST.models=d.models; HIST.cost=d.cost; HIST.tok=d.tok;
+  HIST.out=d.out; HIST.cacheNet=d.cacheNet; HIST.activeDays=d.activeDays; HIST.expiries=d.expiries;
+}
+
+/* ── Monthly projection ─────────────────────────────────────────────────────
+   A per-turn saving means nothing until you know how many turns a month holds.
+   The turn rate is measured from this capture; the working pattern is an
+   assumption, so it is a control the user can change rather than a number buried
+   in the code. Both are stated wherever a monthly figure appears. */
+const PROJ_DEFAULTS={hoursPerDay:6, daysPerMonth:22, fallbackTurnsPerHour:30};
+/* A pause longer than this is you not working, not the agent being slow. */
+const IDLE_GAP_MS=5*60*1000;
+function projLoad(){
+  try{ const j=JSON.parse(localStorage.getItem('iris.projection')||'{}');
+    return {hoursPerDay:+j.hoursPerDay||PROJ_DEFAULTS.hoursPerDay,
+            daysPerMonth:+j.daysPerMonth||PROJ_DEFAULTS.daysPerMonth}; }
+  catch(e){ return {hoursPerDay:PROJ_DEFAULTS.hoursPerDay,daysPerMonth:PROJ_DEFAULTS.daysPerMonth}; }
+}
+function projSave(){
+  try{ localStorage.setItem('iris.projection',JSON.stringify({hoursPerDay:S.proj.hoursPerDay,daysPerMonth:S.proj.daysPerMonth})); }catch(e){}
+}
+S.proj=projLoad();   // set here, not at S's declaration: the helpers live in this block
+
+/* turns/hour: measured when the capture is long enough to mean anything */
+const turnsPerHour=()=>T.turnsPerHour||PROJ_DEFAULTS.fallbackTurnsPerHour;
+const measuredRate=()=>T.turnsPerHour!=null;
+const turnsPerDay  =()=>turnsPerHour()*S.proj.hoursPerDay;
+const turnsPerMonth=()=>turnsPerDay()*S.proj.daysPerMonth;
+/* What a per-turn token count costs over a turn / day / month. */
+function project(tokens){
+  const perTurn=tokens*RATE_IN();
+  return {perTurn, perDay:perTurn*turnsPerDay(), perMonth:perTurn*turnsPerMonth()};
+}
+/* Plain-language statement of what any monthly number rests on. */
+const hrs=h=>h<1?(h*60).toFixed(0)+' min':h.toFixed(1)+' h';
+const projBasis=()=>
+  `${measuredRate()
+    ? `measured ${turnsPerHour().toFixed(0)} turns/hour across ${hrs(T.activeHours)} of active work`
+      +`${T.idleHours>0.05?` (${hrs(T.idleHours)} of idle time excluded from ${hrs(T.spanHours)} elapsed)`:''}`
+    : `assumed ${PROJ_DEFAULTS.fallbackTurnsPerHour} turns/hour — not enough active time captured to measure`}`
+  +` × ${S.proj.hoursPerDay} h/day × ${S.proj.daysPerMonth} days = ${fmt(turnsPerMonth())} turns/month,`
+  +` priced at the measured ${mtok(RATE_IN()*1e6)} you actually paid for input`;
+/* The write multiplier a given call actually paid, blended if it mixed TTLs. */
+function wMult(c){
+  const r=rateOf(c); if(!r||!c.cw) return '1.25';
+  return (((c.cw5||0)*r.cw5+(c.cw1||0)*r.cw1)/c.cw/r.in).toFixed(2);
+}
+/* A per-Mtok list rate, printed the way the price book prints it. */
+const mtok=n=>n==null?'—':'$'+(n%1===0?n:n.toFixed(2))+'/Mtok';
+/* Cache reads as a percentage of base input — 10% by definition, but derived so it
+   stays honest if a rate ever changes. */
+const crPct=()=>M.pricing.in?(M.pricing.cr/M.pricing.in*100).toFixed(0):'10';
+const TAX=()=>TOOLS.filter(isOn).reduce((a,t)=>a+t.tokens,0);        // staged: what you'd ship
+const TAX_LIVE=()=>TOOLS.reduce((a,t)=>a+(t.on?t.tokens:0),0);        // published: what ships today
+const pct=(a,b)=>b?a/b*100:0;                                         // never NaN in the markup
+
+/* ── tiny svg helpers ──────────────────────────────────────────────── */
+function spark(vals,w=104,h=34,color='#1B4DFF'){
+  const mx=Math.max(0,...vals)||1, st=w/(vals.length-1||1);
+  const pts=vals.map((v,i)=>`${(i*st).toFixed(1)},${(h-2-(v/mx)*(h-6)).toFixed(1)}`).join(' ');
+  return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" fill="none" aria-hidden="true">
+    <polyline points="${pts}" stroke="${color}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" opacity=".85"/>
+    <polyline points="0,${h} ${pts} ${w},${h}" fill="${color}" opacity=".07" stroke="none"/></svg>`;
+}
+const chevron=`<svg class="caret" viewBox="0 0 16 16" fill="none"><path d="M6 3.5 10.5 8 6 12.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+/* ═══════════════ SIGNATURE — the context ribbon ═══════════════
+   The whole request payload, drawn to scale. Every pixel is a token
+   that ships to the model on this turn. Cache breakpoints are notches. */
+function ribbon(c){
+  const sys=c.sys||[], msgs=c.msgs||[];
+  /* --- the fixed prefix: system + tool schemas. Re-sent verbatim on every turn. --- */
+  const pre=[], sysTot=sys.reduce((a,b)=>a+b.c,0)||1;
+  sys.forEach((b,i)=>pre.push({cls:'sys',tok:c.sysTok*(b.c/sysTot),name:i===0?'System':'',
+    kind:'System prompt · block '+(i+1), det:fmt(b.c)+' chars'+(b.cache?' · cache breakpoint':''), cache:b.cache}));
+  TOOLS.filter(isOn).filter(t=>t.tokens>0).sort((a,b)=>b.tokens-a.tokens).forEach(t=>
+    pre.push({cls:'too',tok:t.tokens,name:t.name,kind:'Tool schema · '+t.name,
+      det:fmt(t.tokens)+' tok · '+(t.calls?t.calls+' calls this session':'never called')}));
+  const preTok=pre.reduce((a,s)=>a+s.tok,0);
+
+  /* --- the variable part: the conversation itself --- */
+  const his=[], mTot=msgs.reduce((a,m)=>a+m.b.reduce((x,b)=>x+b.c,0),0)||1;
+  msgs.forEach((m,i)=>{
+    const ch=m.b.reduce((x,b)=>x+b.c,0); if(ch<=0) return;
+    his.push({cls:'his'+(i%2?' alt':''),tok:c.msgTok*(ch/mTot),
+      kind:`Message ${i+1}/${msgs.length} · ${m.r}`,
+      det:[...new Set(m.b.map(b=>b.t))].join(' + ')+' · '+fmt(ch)+' chars'});
+  });
+  const tot=(preTok+c.msgTok)||1, prePct=preTok/tot*100;
+
+  const cell=(s,pct,label)=>`<div class="seg ${s.cls}" style="flex:0 0 ${pct}%"
+    data-kind="${esc(s.kind)}" data-det="${esc(s.det)}" data-tok="${Math.round(s.tok)}">${label||''}</div>`;
+
+  /* magnified prefix — proportional within itself, so 9.5k tokens become readable */
+  const mag=pre.map(s=>{
+    const pct=s.tok/(preTok||1)*100;
+    const label = (pct>5.4&&s.name) ? `<span class="cap">${esc(s.name)}<i>${fmt(s.tok)}</i></span>` : '';
+    return cell(s,pct,label);
+  }).join('');
+
+  /* true scale */
+  let acc=0; const notches=[];
+  const strip=pre.concat(his).map(s=>{
+    const pct=s.tok/tot*100; acc+=pct;
+    if(s.cache) notches.push(acc);
+    return cell(s,pct,'');
+  }).join('');
+  notches.push(prePct);
+
+  return `<div class="rib-stage">
+    <div class="rib-caption">Fixed prefix · ${fmt(preTok)} tokens re-sent every turn</div>
+    <div class="rib-mag">${mag}</div>
+    <svg class="rib-link" viewBox="0 0 100 22" preserveAspectRatio="none" aria-hidden="true">
+      <polygon points="0,0 100,0 ${prePct.toFixed(3)},22 0,22" fill="#1B4DFF" opacity=".08"/>
+      <line x1="100" y1="0" x2="${prePct.toFixed(3)}" y2="22" stroke="#1B4DFF" stroke-width=".4" opacity=".45" vector-effect="non-scaling-stroke"/>
+      <line x1="0" y1="0" x2="0" y2="22" stroke="#1B4DFF" stroke-width=".4" opacity=".45" vector-effect="non-scaling-stroke"/>
+    </svg>
+    <div class="ribbon" id="ribbon">${strip}
+      <i class="prefix-lens" style="width:${prePct.toFixed(3)}%"></i>
+      ${notches.map(p=>`<i class="notch" style="left:${p.toFixed(2)}%"></i>`).join('')}
+      <span class="cap" style="position:absolute;left:calc(${prePct.toFixed(2)}% + 10px);top:9px">Conversation<i>${k(c.msgTok)} tokens · ${msgs.length} messages</i></span>
+    </div>
+    <div class="ribbon-scale"><span>0</span><span>${k(tot*.25)}</span><span>${k(tot*.5)}</span><span>${k(tot*.75)}</span><span>${k(tot)} tokens</span></div>
+  </div>`;
+}
+function bindRibbon(c){
+  const stage=$('.rib-stage'), tip=$('#ribTip'); if(!stage||!tip) return;
+  const nOn=TOOLS.filter(t=>isOn(t)&&t.tokens>0).length;
+  const base=`<b>${nOn} tool schemas and ${(c.sys||[]).length} system blocks</b> ship again on every single turn. The top band magnifies that fixed prefix; the bottom band is true scale. Hover anything.`;
+  tip.innerHTML=base;
+  stage.addEventListener('mousemove',e=>{
+    const s=e.target.closest('.seg'); if(!s) return;
+    tip.innerHTML=`<b>${esc(s.dataset.kind)}</b> — ${esc(s.dataset.det)}<span class="k">${fmt(+s.dataset.tok)} tok</span><span class="k">${usd(+s.dataset.tok*RATE_IN())}/turn</span><span class="k">${usd(project(+s.dataset.tok).perMonth)}/mo</span>`;
+  });
+  stage.addEventListener('mouseleave',()=>tip.innerHTML=base);
+}
+
+/* ═══════════════ VIEW · OVERVIEW ═══════════════ */
+function vOverview(){
+  const c=latestCall();
+  const costs=VW.map(x=>x.cost), mx=Math.max(0,...costs)||1;
+  const flags=riskFlags();
+  const rest=VW.slice(1);
+  const win=timeWindow();
+  const gDec=GUARD.decisions.filter(d=>!d.t||inWindow(d.t));
+  const gAllow=gDec.filter(d=>String(d.decision||'').toLowerCase()==='allow').length;
+  const gAsk=gDec.filter(d=>String(d.decision||'').toLowerCase()==='ask').length;
+  const gDeny=gDec.filter(d=>String(d.decision||'').toLowerCase()==='deny').length;
+  return `
+  <div class="phead"><div>
+    <div class="eyebrow">${esc(win.label)} · ${VW.length} call${VW.length===1?'':'s'} · session ${M.session}</div>
+    <h1>Overview</h1>
+    <p class="sub">What this session cost, and what it carried.</p>
+  </div></div>
+
+  <div class="kpis">
+    ${kpi('Context shipped',k(T.shipped),spark(VW.map(x=>x.in+x.cr+x.cw)),`across ${T.calls} calls`,'')}
+    ${kpi('Billed',usd(T.cost),spark(costs,104,34,'#BB332A'),
+      T.unpriced?`${T.calls-T.unpriced} of ${T.calls} calls priced`:`${M.pricing.tier||'—'} list rates${M.pricing.note?' · '+M.pricing.note:''}`,'')}
+    ${kpi('Potential trim',k(TOOLS.filter(t=>isOn(t)&&t.calls===0).reduce((a,t)=>a+t.tokens,0)),spark([TAX(),TAX(),TAX()]),
+      `${TOOLS.filter(t=>isOn(t)&&t.calls===0).length} unused schemas · ${usd(project(TOOLS.filter(t=>isOn(t)&&t.calls===0).reduce((a,t)=>a+t.tokens,0)).perMonth)}/mo projected`,'')}
+    ${kpi('Authority',(GUARD.env?.acceptedAt?'active':'open'),'','',GUARD.env?.acceptedAt?`task: ${esc((GUARD.env.task||'').slice(0,40)||'accepted')}`:'accept an envelope in Guard')}
+    ${kpi('Guard',`${gAllow}↑ ${gAsk}? ${gDeny}✕`,'',
+      GUARD.signals.length?`${GUARD.signals.length} authority signal${GUARD.signals.length>1?'s':''}`:`${esc(win.label)}`,'')}
+  </div>
+
+  ${c?`<div class="ribbon-card" style="margin-bottom:16px">
+    <div class="ribbon-top">
+      <div><div class="ctitle">The payload, drawn to scale</div>
+        <div class="cnote">Call ${c.id} · ${hhmm(c.time)}${c.fromHist?' · ledger row (payload text not stored)':' · every pixel is a token that left the machine'}</div></div>
+      <div class="ribbon-legend">
+        <span class="lg"><i class="sw" style="background:var(--sys)"></i>System ${k(c.sysTok)}</span>
+        <span class="lg"><i class="sw" style="background:var(--too)"></i>Tool schemas ${k(c.fromHist?c.toolTotal:TAX())}</span>
+        <span class="lg"><i class="sw" style="background:var(--his)"></i>Conversation ${k(c.msgTok)}</span>
+        <span class="lg"><i class="sw" style="background:repeating-linear-gradient(180deg,var(--ink2) 0 2px,transparent 2px 4px)"></i>Cache break</span>
+      </div>
+    </div>
+    ${c.fromHist?`<div class="empty">This window's newest call is from the spend ledger. Payload text isn't kept — KPIs and the cost chart below are the record.</div>`:ribbon(c)}
+    <div class="ribbon-foot"><div id="ribTip"></div>
+      <button class="btn" style="margin-left:auto" data-go="context">Open context budget</button></div>
+  </div>`:''}
+
+  <div class="split" style="margin-bottom:14px">
+    <div class="card"><div class="chead"><div class="ctitle">Cost per call</div>
+      <span class="cnote" style="margin-left:auto">click a bar to inspect</span></div>
+      <div class="cbody">
+        ${VW.length?`<div class="bars" style="gap:${VW.length>80?1:VW.length>40?2:5}px">${VW.map((x,i)=>`<button class="bar" data-call="${i}" style="height:${Math.max(3,(x.cost||0)/mx*100)}%"
+          title="Call ${x.id} · ${usd(x.cost)} · ${ms(x.ms)}"></button>`).join('')}</div>
+        ${VW.length<=20
+          ? `<div class="xaxis">${VW.map(x=>`<span>${x.id}</span>`).join('')}</div>`
+          : `<div class="xaxis-ends"><span>${VW[0].id}</span><span>${fmt(VW.length)} calls</span><span>${VW[VW.length-1].id}</span></div>`}
+        <div class="kv" style="margin-top:12px"><span>Cold-start cache write (call ${VW[0].id})</span><b>${usd(VW[0].cost)}</b></div>
+        <div class="kv"><span>Mean call thereafter</span><b>${rest.length?usd(rest.reduce((a,x)=>a+(x.cost||0),0)/rest.length):'—'}</b></div>`
+        :`<div class="empty">No calls in ${esc(win.label.toLowerCase())}.</div>`}
+      </div></div>
+
+    <div class="card"><div class="chead"><div class="ctitle">What Iris flagged</div>
+      <span class="tag ${flags.some(f=>f.sev==='bad')?'bad':'warn'}" style="margin-left:auto">${flags.length} signals</span></div>
+      <div class="cbody" style="padding-top:4px">
+        ${flags.map(f=>`<div class="risk-row">
+          <div class="ricon" style="background:var(--${f.sev==='bad'?'rust':f.sev==='warn'?'amber':'jade'}-soft);color:var(--${f.sev==='bad'?'rust':f.sev==='warn'?'amber':'jade'})">${f.icon}</div>
+          <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${f.title}</div>
+            <div class="small muted" style="margin-top:2px">${f.body}</div></div>
+          ${f.act?`<button class="btn" data-go="${f.act}" style="flex:none">${f.actLabel}</button>`:''}
+        </div>`).join('')}
+      </div></div>
+  </div>`;
+}
+function kpi(lbl,val,sp,foot,delta){
+  return `<div class="kpi"><div class="lbl">${lbl}</div><div class="val">${val}</div>
+    <div class="foot">${delta}<span>${foot}</span></div>${sp}</div>`;
+}
+/* Signals, derived from the capture. A flag only appears when the condition it
+   describes is actually true, so an empty-ish session reads as quiet, not broken. */
+function riskFlags(){
+  const f=[];
+
+  const dead=TOOLS.filter(t=>isOn(t)&&t.tokens>0&&t.calls===0).sort((a,b)=>b.tokens-a.tokens);
+  const deadTok=dead.reduce((a,t)=>a+t.tokens,0);
+  if(dead.length) f.push({sev:'bad',icon:'◎',title:`${dead.length} tool schema${dead.length>1?'s':''} ship but ${dead.length>1?'were':'was'} never called`,
+    body:`${dead.slice(0,3).map(t=>t.name).join(', ')}${dead.length>3?` +${dead.length-3} more`:''} — ${fmt(deadTok)} tokens re-sent every turn. `
+      +`<b>${usd(project(deadTok).perMonth)}/month</b> of pure overhead at your current pace (${usd(project(deadTok).perTurn)} a turn).`,
+    act:'tools',actLabel:'Trim'});
+
+  const st=Object.entries(T.serverTools||{}).filter(([,n])=>n>0);
+  if(st.length) f.push({sev:'ok',icon:'⊕',title:`Server-side tools billed on top of tokens`,
+    body:st.map(([key,n])=>{
+      const r=SERVER_TOOL_RATES[key];
+      return `${r?r.label:key} ×${n}${r?` = ${usd(n*r.usd)} (${r.note})`:' — billed by time, not per request'}`;
+    }).join(' · ')+`. Session total ${usd(T.toolFees)}.`});
+
+  const failed=VW.filter(x=>x.status!=null&&(x.status<200||x.status>=300));
+  if(failed.length) f.push({sev:'bad',icon:'✕',title:`${failed.length} call${failed.length>1?'s':''} failed upstream`,
+    body:`${failed.slice(-3).map(x=>'call '+x.id+' → HTTP '+x.status+(x.error?' ('+esc(x.error)+')':'')).join(', ')}. A retried turn re-ships the whole payload, so failures are billed twice.`,
+    act:'traffic',actLabel:'Inspect'});
+
+  const done=VW.filter(x=>x.ms!=null);
+  if(done.length){
+    const slow=done.reduce((a,x)=>x.ms>a.ms?x:a,done[0]);
+    f.push({sev:slow.cw>slow.cr?'warn':'ok',icon:'△',title:`Call ${slow.id} took ${ms(slow.ms)}`,
+      body:slow.cw>slow.cr
+        ? `Cold cache — ${fmt(slow.cw)} tokens written at ${wMult(slow)}× input price${slow.cw1?' (1-hour TTL)':''}. Every later turn reads that cache at ${crPct()}% of input instead of paying full freight.`
+        : `Slowest turn of the session, but it read ${fmt(slow.cr)} tokens from cache rather than writing them. The time went to generation, not to prompt ingest.`,
+      act:'traffic',actLabel:'Inspect'});
+  }
+
+  /* a tool the agent reached for that policy has since blocked */
+  const blockedButUsed=TOOLS.filter(t=>t.calls>0&&!isOn(t));
+  if(blockedButUsed.length){
+    const t=blockedButUsed.sort((a,b)=>b.calls-a.calls)[0];
+    f.push({sev:'ok',icon:'✓',title:`${t.name} is blocked but was used`,
+      body:`The agent reached for it ${t.calls}× this session (first at action ${TRACE.find(x=>x.tool===t.name)?.i}). Your policy now denies the schema, so it stops shipping on the next session.`,
+      act:'trace',actLabel:'View'});
+  }
+
+  if(T.unpriced) f.push({sev:'warn',icon:'?',title:`${T.unpriced} call${T.unpriced>1?'s':''} could not be priced`,
+    body:`No list price on file for that model id, so those calls are excluded from every dollar figure here rather than counted as free. Add it to the price book in iris.html.`,
+    act:'traffic',actLabel:'Inspect'});
+
+  if(T.cacheR+T.cacheW>0) f.push({sev:T.hit>60?'ok':'warn',icon:'⛁',title:`Cache is carrying ${T.hit.toFixed(0)}% of input`,
+    body:`${k(T.cacheR)} read from cache at ${mtok(M.pricing.cr)} versus ${k(T.cacheW)} written`
+      +`${T.cacheW1?` (${k(T.cacheW1)} on the 1-hour TTL at ${mtok(M.pricing.cw1)}, 2× input)`:''}. `
+      +`Net of the write premium that is ${usd(T.cacheNet)}.`});
+
+  if(pendCount()) f.push({sev:'warn',icon:'●',title:`${pendCount()} policy change${pendCount()>1?'s':''} staged, not written`,
+    body:`Nothing has been written to settings.json yet. Publish to apply — the agent picks it up on its next session.`,
+    act:'tools',actLabel:'Review'});
+
+  if(!f.length) f.push({sev:'ok',icon:'✓',title:'Nothing to flag',
+    body:'Every enabled tool has been used, no call failed, and the cache is doing its job.'});
+  return f;
+}
+
+/* ═══════════════ VIEW · SPEND (measured, not projected) ═══════════════ */
+function vSpend(){
+  const win=timeWindow();
+  if(!HIST.records.length) return `
+    <div class="phead"><div><div class="eyebrow">Measured history</div><h1>Spend</h1>
+      <p class="sub">${HIST.building
+        ? 'The proxy is indexing its logs — this happens once, then it is cached.'
+        : 'No billable calls in the proxy log yet. Every call this proxy records is added to a ledger here, so spend is measured rather than estimated.'}</p></div></div>`;
+
+  if(!HW.records.length) return `
+    <div class="phead"><div><div class="eyebrow">Measured history · ${esc(win.label)}</div><h1>Spend</h1>
+      <p class="sub">No billable calls in ${esc(win.label.toLowerCase())}. Iris has ${fmt(HIST.records.length)} in the ledger — pick a wider range in the header.</p></div></div>`;
+
+  const perActive=HW.activeDays?HW.cost/HW.activeDays:0;
+  const days=HW.days;
+  const mx=Math.max(0,...days.map(d=>d.cost))||1;
+  const ex=HW.expiries, exCost=ex.reduce((a,e)=>a+(e.paid||0),0), exExcess=ex.reduce((a,e)=>a+(e.excess||0),0);
+  const models=Object.entries(HW.models).sort((a,b)=>b[1]-a[1]);
+  const p50=(arr)=>{const s=arr.filter(v=>v!=null).sort((a,b)=>a-b);return s.length?s[Math.floor(s.length/2)]:null;};
+  const sparkDays=days.slice(-30);
+
+  return `
+  <div class="phead"><div>
+    <div class="eyebrow">${esc(win.label)} · ${fmt(HW.records.length)} billable calls · ${HW.activeDays} active day${HW.activeDays===1?'':'s'}</div>
+    <h1>Spend</h1>
+    <p class="sub">Every call, priced from the usage the API reported.</p>
+  </div></div>
+
+  <div class="kpis">
+    ${kpi(win.label,usd(HW.cost),spark(sparkDays.map(d=>d.cost),104,34,'#BB332A'),`${fmt(HW.records.length)} calls over ${HW.activeDays} active day${HW.activeDays===1?'':'s'}`,'')}
+    ${kpi('Per active day',usd(perActive),'',`benchmark: Anthropic cites ~$${BENCH.perActiveDay}/dev/active day`,
+      perActive?`<span class="delta ${perActive<BENCH.perActiveDay?'dn':'up'}">${(perActive/BENCH.perActiveDay*100).toFixed(0)}% of benchmark</span>`:'')}
+    ${kpi('Net cache saving',usd(HW.cacheNet),'',`across ${k(HW.tok)} input tokens`,'')}
+    ${kpi('Cache hit',(HW.records.reduce((a,r)=>a+(r.cr||0),0)+HW.records.reduce((a,r)=>a+(r.cw||0),0))
+      ? (HW.records.reduce((a,r)=>a+(r.cr||0),0)/(HW.records.reduce((a,r)=>a+(r.cr||0)+(r.cw||0),0))*100).toFixed(0)+'%'
+      : '—','',`${k(HW.records.reduce((a,r)=>a+(r.cr||0),0))} read · ${k(HW.records.reduce((a,r)=>a+(r.cw||0),0))} written`,'')}
+    ${kpi('Output',k(HW.out),'',`${k(days.reduce((a,d)=>a+d.think,0))} thinking tokens`,'')}
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
+    <div class="chead"><div><div class="ctitle">Cost per day</div>
+      <div class="cnote" style="margin-top:3px">${days.length} active day${days.length===1?'':'s'} in this window. Bars are actual billed cost.</div></div>
+      <span class="cnote" style="margin-left:auto">total ${usd(HW.cost)}</span></div>
+    <div class="cbody">
+      <div class="bars" style="height:120px">${days.map(d=>`<button class="bar" style="height:${Math.max(3,d.cost/mx*100)}%"
+        title="${d.day} · ${usd(d.cost)} · ${d.calls} calls"></button>`).join('')}</div>
+      <div class="xaxis">${days.map(d=>`<span>${d.day.slice(5)}</span>`).join('')}</div>
+    </div>
+    <div class="tbl-scroll"><table class="tbl">
+      <thead><tr><th>Day</th><th class="r">Calls</th><th class="r">Input</th><th class="r">Output</th>
+        <th class="r">Cache hit</th><th class="r">p50 latency</th><th class="r">Cost</th></tr></thead>
+      <tbody>${HW.days.slice().reverse().map(d=>{
+        const hit=pct(d.cr,d.cr+d.cw);
+        return `<tr><td class="mono">${d.day}</td><td class="r mono">${d.calls}</td>
+          <td class="r mono">${k(d.in+d.cr+d.cw)}</td><td class="r mono">${k(d.out)}</td>
+          <td class="r"><span class="tag ${hit>80?'ok':hit>1?'warn':'bad'} mono">${hit<1?'miss':hit.toFixed(0)+'%'}</span></td>
+          <td class="r mono muted">${ms(p50(d.ms))}</td>
+          <td class="r mono" style="font-weight:600">${usd(d.cost)}</td></tr>`;
+      }).join('')}</tbody>
+      <tfoot><tr style="background:var(--well);font-weight:600">
+        <td>${HW.activeDays} days</td><td class="r mono">${fmt(HW.records.length)}</td>
+        <td class="r mono">${k(HW.tok)}</td><td class="r mono">${k(HW.out)}</td><td></td><td></td>
+        <td class="r mono">${usd(HW.cost)}</td></tr></tfoot>
+    </table></div>
+  </div>
+
+  <div class="split" style="margin-bottom:14px">
+    <div class="card"><div class="chead"><div class="ctitle">Cache expiries</div>
+      <span class="tag ${exExcess>HW.cost*0.1?'bad':'warn'}" style="margin-left:auto">${ex.length} rebuilds</span></div>
+      <div class="cbody">
+        <div class="small muted" style="margin-bottom:10px">Step away for longer than the cache lifetime and the next
+          call reprocesses your whole context at write price instead of reading it at ${crPct()}% of input. The lifetime
+          is an hour on a subscription, five minutes on an API key — read here from the TTL each write actually used.</div>
+        <div class="kv"><span>Prefix rebuilds after an idle gap</span><b>${ex.length}</b></div>
+        <div class="kv"><span>Tokens rewritten</span><b>${k(ex.reduce((a,e)=>a+e.tok,0))}</b></div>
+        <div class="kv"><span>Paid for those writes</span><b style="color:var(--amber)">${usd(exCost)}</b></div>
+        <div class="kv"><span>Excess over reading the same tokens</span><b style="color:var(--rust)">${usd(exExcess)}</b></div>
+        <div class="kv"><span>Share of total spend</span><b>${pct(exExcess,HW.cost).toFixed(1)}%</b></div>
+        ${ex.length?`<div class="hr" style="margin:11px 0"></div>
+          <div style="font-size:12.5px;font-weight:700;margin-bottom:6px">Worst offenders</div>
+          ${ex.slice().sort((a,b)=>b.excess-a.excess).slice(0,5).map(e=>`
+            <div style="display:flex;gap:10px;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--line)">
+              <span class="mono small muted" style="width:104px">${e.time.slice(5,16).replace('T',' ')}</span>
+              <span class="small">idle ${e.gapMin<120?e.gapMin.toFixed(0)+' min':(e.gapMin/60).toFixed(1)+' h'}
+                <span class="muted">· ${ttlLabel(e.ttl)} TTL · ${k(e.tok)} tok</span></span>
+              <span class="mono small" style="margin-left:auto;color:var(--rust)">+${usd(e.excess)}</span>
+            </div>`).join('')}`:''}
+      </div></div>
+
+    <div class="card"><div class="chead"><div class="ctitle">Where the money went</div></div><div class="cbody">
+      <div style="font-size:12.5px;font-weight:700;margin-bottom:8px">By model</div>
+      ${models.map(([m,c])=>{
+        const r=rateFor(m);
+        return `<div style="margin-bottom:11px">
+          <div style="display:flex;align-items:baseline;gap:8px">
+            <b style="font-size:13px">${esc(r?r.tier:m)}</b>
+            <span class="mono small muted">${esc(m)}</span>
+            <span class="mono small" style="margin-left:auto">${usd(c)} · ${pct(c,HW.cost).toFixed(0)}%</span></div>
+          <div class="stack" style="margin-top:5px"><i style="background:var(--sys);width:${pct(c,HW.cost)}%"></i></div>
+        </div>`;
+      }).join('')}
+      <div class="hr"></div>
+      <div class="kv" style="margin-top:8px"><span>Monthly run rate at this pace</span>
+        <b>${usd(perActive*S.proj.daysPerMonth)}</b></div>
+      <div class="kv sub2" style="display:block;color:var(--ink3);font-size:12.5px">
+        ${usd(perActive)} per active day × ${S.proj.daysPerMonth} days. Anthropic cites
+        $${BENCH.perMonthLow}–${BENCH.perMonthHigh} per developer per month across enterprise deployments.</div>
+      <div class="kv"><span>Thinking tokens billed as output</span><b>${k(days.reduce((a,d)=>a+d.think,0))}</b></div>
+      <div class="kv"><span>Records carrying latency</span>
+        <b class="mono">${fmt(HW.records.filter(r=>r.ms!=null).length)} of ${fmt(HW.records.length)}</b></div>
+      <div class="kv sub2" style="display:block;color:var(--ink3);font-size:12.5px">
+        Latency was not written to the older payload logs; calls recorded from now on carry it.</div>
+    </div></div>
+  </div>
+
+  <p class="small muted" style="max-width:78ch">Indexed from <b class="mono">.claude/proxy-logs/</b>${HIST.builtAt
+    ? ` · last built ${new Date(HIST.builtAt).toLocaleString()}`:''}. Prices are Anthropic list rates, so promotional
+    pricing, contracted discounts and subscription allowances are not reflected — for authoritative billing see the
+    Claude Console. Calls whose model is not in the price book are excluded rather than counted as free.</p>`;
+}
+
+const ttlLabel=t=>t>=60?'1 hour':'5 min';
+
+/* ═══════════════ VIEW · TRAFFIC ═══════════════ */
+function vTraffic(){
+  const mx=Math.max(0,...VW.map(x=>x.ms||0))||1;
+  const inflight=VW.filter(x=>x.status==null).length;
+  const win=timeWindow();
+  return `
+  <div class="phead"><div>
+    <div class="eyebrow">${esc(win.label)}${inflight?` · ${inflight} in flight`:''}</div><h1>Traffic</h1>
+    <p class="sub">Every request to the model, in order.</p>
+  </div><div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+    <div class="segd" id="tfilter"><button aria-selected="${S.tf==='all'}" data-f="all">All ${VW.length}</button>
+      <button aria-selected="${S.tf==='slow'}" data-f="slow">Slow</button>
+      <button aria-selected="${S.tf==='cold'}" data-f="cold">Cache miss</button>
+      <button aria-selected="${S.tf==='err'}" data-f="err">Failed</button></div>
+  </div></div>
+  ${VW.length?`<div class="card"><div class="tbl-scroll"><table class="tbl">
+    <thead><tr><th>Call</th><th>Time</th><th class="r">Msgs</th><th class="r">Shipped</th>
+      <th class="r">Out</th><th style="width:190px">Latency</th><th class="r">Cache</th><th class="r">Cost</th><th></th></tr></thead>
+    <tbody id="trows">${VW.map((x,i)=>{
+      const live=x.status==null, bad=!live&&(x.status<200||x.status>=300);
+      const w=Math.max(4,(x.ms||0)/mx*100), cls=x.ms>20000?'vslow':x.ms>8000?'slow':'';
+      const hit=pct(x.cr,x.cr+x.cw);
+      const cache=live?'<span class="tag mono">···</span>'
+        :`<span class="tag ${hit>80?'ok':hit>1?'warn':'bad'} mono">${hit<1?'miss':hit.toFixed(0)+'%'}</span>`;
+      return `<tr data-call="${i}" data-slow="${x.ms>8000?1:0}" data-cold="${!live&&x.cw>x.cr?1:0}" data-err="${bad?1:0}">
+        <td><b class="mono">${x.id}</b>${x.fromHist?' <span class="tag mono">ledger</span>':''}${bad?` <span class="tag bad mono">${x.status}</span>`:''}</td>
+        <td class="mono small muted">${hhmm(x.time)}</td>
+        <td class="r mono">${x.msgCount}</td>
+        <td class="r mono">${live?'<span class="muted">···</span>':k(x.in+x.cr+x.cw)}</td>
+        <td class="r mono">${live?'<span class="muted">···</span>':fmt(x.out)}</td>
+        <td><div class="wf"><i class="${cls}" style="width:${live?0:w}%"></i><b>${live?'in flight':ms(x.ms)}</b></div></td>
+        <td class="r">${cache}</td>
+        <td class="r mono" style="font-weight:600">${live?'<span class="muted">···</span>':usd(x.cost)}</td>
+        <td class="r"><span style="color:var(--ink3)">${chevron.replace('class="caret"','')}</span></td></tr>`;
+    }).join('')}</tbody>
+    <tfoot><tr style="background:var(--well);font-weight:600">
+      <td colspan="3">${VW.length} calls</td><td class="r mono">${k(T.shipped)}</td><td class="r mono">${fmt(T.out)}</td>
+      <td class="mono small muted">p50 ${ms(T.p50)} · p95 ${ms(T.p95)}</td>
+      <td class="r"><span class="tag ${T.hit>60?'ok':'warn'} mono">${T.hit.toFixed(0)}%</span></td>
+      <td class="r mono">${usd(T.cost)}</td><td></td></tr></tfoot>
+  </table></div></div>`:`<div class="card"><div class="cbody"><div class="empty">No calls in ${esc(win.label.toLowerCase())}.
+    ${HIST.records.length||C.length?`Iris has ${fmt(HIST.records.length||C.length)} recorded — try a wider range.`:'Nothing recorded yet.'}</div></div></div>`}`;
+}
+
+/* ═══════════════ VIEW · CONTEXT ═══════════════ */
+function vContext(){
+  const c=latestCall();
+  if(!c) return vEmptyWindow();
+  const off=TOOLS.filter(t=>!isOn(t)), offTok=off.reduce((a,t)=>a+t.tokens,0);
+  const measured=off.filter(t=>t.tokens>0).length;
+  const dead=TOOLS.filter(t=>isOn(t)&&t.tokens>0&&t.calls===0);
+  const deadTok=dead.reduce((a,t)=>a+t.tokens,0);
+  const sys=c.sys||[], msgs=c.msgs||[];
+  const toolTok=c.fromHist?(c.toolTotal||0):TAX();
+  const tot=(c.sysTok+toolTok+c.msgTok)||1;
+  const perTurn=t=>usd(t*RATE_IN()), perSession=t=>usd(t*RATE_IN()*T.calls);
+  const enabled=TOOLS.filter(t=>isOn(t)&&t.tokens).length;
+  const prefix=c.sysTok+toolTok;
+
+  /* The conversation is ~99% of a mature window and had no breakdown anywhere
+     in the UI. Roll the message blocks up by kind so the real consumer of the
+     window is visible instead of being one undifferentiated purple band. */
+  const KIND={tool_result:'Tool results',tool_use:'Tool calls',thinking:'Thinking',text:'Text'};
+  const kinds={}; let convChars=0;
+  for(const m of msgs) for(const b of (m.b||[])){
+    const key=KIND[b.t]||'Other';
+    kinds[key]=kinds[key]||{n:0,c:0};
+    kinds[key].n++; kinds[key].c+=b.c||0; convChars+=b.c||0;
+  }
+  const roles={}; for(const m of msgs) roles[m.r]=(roles[m.r]||0)+1;
+
+  const tab=S.ctxTab||'breakdown';
+  const TABS=[
+    ['breakdown','Breakdown',`${fmt(tot)} tok total`],
+    ['system','System prompt',`${fmt(c.sysTok)} tok · ${sys.length} block${sys.length===1?'':'s'}`],
+    ['tools','Tool schemas',`${fmt(toolTok)} tok · ${enabled}/${TOOLS.length} on`],
+    ['conversation','Conversation',`${fmt(c.msgTok)} tok · ${fmt(msgs.length)} msgs`],
+    ['changes','Changes','diff · attribution'],
+  ];
+
+  const paneBreakdown=()=>`
+  <div class="split">
+    <div class="card"><div class="chead"><div class="ctitle">Where the window goes</div></div><div class="cbody">
+      ${[['System prompt',c.sysTok,'--sys',c.fromHist?`${fmt(c.sysTok)} tok estimated`:`${sys.length} blocks · ${sys.filter(b=>b.cache).length} cached`,'system'],
+         ['Tool schemas',toolTok,'--too',c.fromHist?`${fmt(toolTok)} tok estimated`:`${enabled} of ${TOOLS.length} tools enabled`,'tools'],
+         ['Conversation',c.msgTok,'--his',c.fromHist?`${fmt(c.msgTok)} tok estimated`:`${fmt(msgs.length)} messages`,'conversation']].map(([n,v,col,sub,go])=>`
+        <div style="margin-bottom:14px">
+          <div style="display:flex;align-items:baseline;gap:8px">
+            <i class="sw" style="background:var(${col})"></i><b style="font-size:13px">${n}</b>
+            <span class="mono small muted" style="margin-left:auto">${fmt(v)} tok · ${(v/tot*100).toFixed(1)}%</span></div>
+          <div class="stack" style="margin-top:6px"><i style="background:var(${col});width:${v/tot*100}%"></i></div>
+          <div class="small muted" style="margin-top:4px">${sub} · ${perTurn(v)} per turn
+            <button class="linkish" data-ct="${go}">open</button></div>
+        </div>`).join('')}
+    </div></div>
+
+    <div class="card"><div class="chead"><div class="ctitle">What the fixed prefix costs</div>
+      <span class="cnote" style="margin-left:auto">system + tools, re-sent every turn</span></div><div class="cbody">
+      <div class="kv"><span>Repeated on every turn</span><b>${fmt(prefix)} tok</b></div>
+      <div class="kv"><span>Cost of that repetition, per turn</span><b>${usd(project(prefix).perTurn)}</b></div>
+      <div class="kv"><span>Across ${T.calls} calls in this range</span><b>${perSession(prefix)}</b></div>
+      <div class="kv"><span>Projected per month</span><b style="color:var(--amber)">${usd(project(prefix).perMonth)}</b></div>
+      <div class="small muted" style="margin-top:6px">${projBasis()}.</div>
+      ${deadTok?`<div class="sim" style="margin-top:12px"><div style="flex:1">
+        <div style="font-weight:600">${dead.length} enabled schema${dead.length===1?'':'s'} never called</div>
+        <div class="small muted" style="margin-top:3px">${fmt(deadTok)} tokens of that prefix is dead weight —
+          <b style="color:var(--jade)">${usd(project(deadTok).perMonth)}/month</b>.</div>
+      </div><button class="btn" data-ct="tools">Review</button></div>`:''}
+    </div></div>
+  </div>`;
+
+  const paneSystem=()=>`
+  <div class="card"><div class="chead"><div class="ctitle">System prompt · ${sys.length} blocks</div>
+    <span class="cnote" style="margin-left:auto">cached blocks are billed once, then read at ${crPct()}% of input price</span></div>
+    <div class="cbody" style="display:flex;flex-direction:column;gap:8px">
+    ${sys.length?(bigSys=>sys.map((b,i)=>`<div class="acc${i===bigSys?' open':''}"><button class="ahead">${chevron}
+      Block ${i+1}<span class="tag ${b.cache?'ok':''} mono">${fmt(b.c)} chars</span>
+      ${b.cache?'<span class="tag ok">cached</span>':'<span class="tag warn">uncached</span>'}</button>
+      <div class="abody"><div class="pre">${esc(b.x)}</div></div></div>`).join(''))(
+      sys.reduce((best,b,i,a)=>b.c>a[best].c?i:best,0))
+      :'<div class="empty">No system prompt captured for this row.</div>'}
+    </div></div>`;
+
+  const paneTools=()=>`
+  <div class="card"><div class="chead"><div class="ctitle">Trim simulator</div>
+    <span class="cnote" style="margin-left:auto">live</span></div><div class="cbody">
+    <div class="sim"><div style="flex:1">
+      <div style="font-weight:600">Currently blocked: ${off.length} tools</div>
+      <div class="small muted" style="margin-top:3px">${measured
+        ? `${measured} of them shipped while Iris was recording, so their size is known: <b>${fmt(offTok)} tokens</b> kept out of every request — <b style="color:var(--jade)">${usd(project(offTok).perMonth)}/month</b> you are already not paying.`
+        : `None of them shipped while Iris was recording, so there is no measured saving to report yet.`}
+        ${measured&&off.length-measured>0?`The other ${off.length-measured} were already blocked before recording started.`:''}</div>
+    </div><div class="num" style="font-size:22px;font-weight:600;color:var(--jade)">−${k(offTok)}</div></div>
+
+    <div style="margin-top:14px;font-size:12.5px;font-weight:700">Still shipping, never used</div>
+    <div class="small muted" style="margin:3px 0 10px">These schemas were sent on all ${T.calls} turns and the agent never reached for one.</div>
+    ${dead.length?dead.sort((a,b)=>b.tokens-a.tokens).map(t=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)">
+        <button class="tog ${S.pending[t.name]!==undefined?'pend':''}" role="switch" aria-checked="${isOn(t)}" data-tool="${esc(t.name)}"></button>
+        <b style="font-size:13px;flex:1">${esc(t.name)}</b>
+        <span class="mono small muted">${fmt(t.tokens)} tok</span>
+        <span class="mono small" style="color:var(--jade);width:74px;text-align:right" title="projected monthly saving">${usd(project(t.tokens).perMonth)}/mo</span>
+      </div>`).join(''):'<div class="empty">Nothing idle. Every enabled tool got used.</div>'}
+    <div class="kv" style="margin-top:12px"><span>If all trimmed · per turn <span class="tag warn">projected</span></span><b style="color:var(--jade)">${usd(project(deadTok).perTurn)}</b></div>
+    <div class="kv"><span>If all trimmed · per month <span class="tag warn">projected</span></span><b style="color:var(--jade);font-size:17px">${usd(project(deadTok).perMonth)}</b></div>
+  </div></div>`;
+
+  const paneConversation=()=>{
+    if(!msgs.length) return `<div class="card"><div class="cbody"><div class="empty">No payload text stored for this row.</div></div></div>`;
+    const rows=Object.entries(kinds).sort((a,b)=>b[1].c-a[1].c);
+    return `
+    <div class="split">
+      <div class="card"><div class="chead"><div class="ctitle">What the conversation is made of</div>
+        <span class="cnote" style="margin-left:auto">${fmt(c.msgTok)} tok across ${fmt(msgs.length)} messages</span></div><div class="cbody">
+        ${rows.map(([name,v])=>{
+          const share=convChars?v.c/convChars:0;
+          return `<div style="margin-bottom:14px">
+            <div style="display:flex;align-items:baseline;gap:8px">
+              <b style="font-size:13px">${name}</b>
+              <span class="mono small muted" style="margin-left:auto">${fmt(Math.round(share*c.msgTok))} tok · ${(share*100).toFixed(1)}%</span></div>
+            <div class="stack" style="margin-top:6px"><i style="background:var(--his);width:${share*100}%"></i></div>
+            <div class="small muted" style="margin-top:4px">${fmt(v.n)} block${v.n===1?'':'s'} · ${fmt(v.c)} chars</div>
+          </div>`;}).join('')}
+        <div class="small muted">Shares are measured from block characters and applied to the calibrated
+          conversation total, so they are proportional rather than separately billed figures.</div>
+      </div></div>
+
+      <div class="card"><div class="chead"><div class="ctitle">Messages by role</div></div><div class="cbody">
+        ${Object.entries(roles).sort((a,b)=>b[1]-a[1]).map(([r,n])=>`
+          <div class="kv"><span>${esc(r)}</span><b>${fmt(n)}</b></div>`).join('')}
+        <div class="kv"><span>Total messages</span><b>${fmt(msgs.length)}</b></div>
+        <div class="small muted" style="margin-top:8px">History is the one part of the window that only grows.
+          Tool results are usually the largest share and the easiest to shrink.</div>
+      </div></div>
+    </div>`;
+  };
+
+  const paneChanges=()=>`
+  <div class="split">
+    <div class="card"><div class="chead"><div class="ctitle">Context Diff</div>
+      <button class="btn" id="btnCtxDiff" style="margin-left:auto">Refresh</button></div>
+      <div class="cbody" id="ctxDiffBody"><div class="small muted">Comparing the two newest captured requests…</div></div></div>
+    <div class="card"><div class="chead"><div class="ctitle">Tool result attribution</div>
+      <button class="btn" id="btnToolRes" style="margin-left:auto">Refresh</button></div>
+      <div class="cbody" id="toolResBody"><div class="small muted">Ranks which tool outputs dominate the window.</div></div></div>
+  </div>`;
+
+  const PANES={breakdown:paneBreakdown,system:paneSystem,tools:paneTools,conversation:paneConversation,changes:paneChanges};
+
+  return `
+  <div class="phead"><div><div class="eyebrow">Call ${c.id} · ${c.fromHist?'ledger row':`the newest turn in ${esc(timeWindow().label.toLowerCase())}`}</div><h1>Context budget</h1>
+    <p class="sub">${c.fromHist?'Token counts from the spend ledger — payload text is not stored for historical rows.':'What the newest turn actually carried.'}</p></div></div>
+
+  <div class="ribbon-card" style="margin-bottom:16px">
+    <div class="ribbon-top"><div><div class="ctitle">Payload composition</div>
+      <div class="cnote">${fmt(tot)} tokens${c.fromHist?'':` · ${c.breaks} cache breakpoints`}</div></div>
+      <div class="ribbon-legend">
+        <span class="lg"><i class="sw" style="background:var(--sys)"></i>System</span>
+        <span class="lg"><i class="sw" style="background:var(--too)"></i>Tools</span>
+        <span class="lg"><i class="sw" style="background:var(--his)"></i>History</span></div></div>
+    ${c.fromHist?`<div class="empty">Payload text isn't stored on ledger rows. The bars below use measured token counts for this call.</div>`:ribbon(c)}
+    <div class="ribbon-foot"><div id="ribTip"></div></div>
+  </div>
+
+  <div class="ctabs" id="ctxTabs" role="tablist">
+    ${TABS.map(([id,label,sub])=>`
+      <button class="ctab" role="tab" aria-selected="${tab===id}" data-ct="${id}">
+        <b>${label}</b><span>${sub}</span></button>`).join('')}
+  </div>
+
+  ${(PANES[tab]||paneBreakdown)()}`;
+}
+
+/* ═══════════════ VIEW · TOOLS & POLICY ═══════════════ */
+function vTools(){
+  const onT=TOOLS.filter(isOn), delta=TAX()-TAX_LIVE();
+  const trimmable=TOOLS.filter(t=>isOn(t)&&meta(t.name).tier==='optional'&&!t.calls&&t.tokens>0);
+  const trimTok=trimmable.reduce((a,t)=>a+t.tokens,0);
+  const pass=t=>S.filter==='all'||(S.filter==='on'&&isOn(t))||(S.filter==='off'&&!isOn(t))||(S.filter==='idle'&&isOn(t)&&!t.calls);
+
+  const groups=GROUPS.map(g=>{
+    const rows=TOOLS.filter(t=>meta(t.name).g===g.id).sort((a,b)=>b.tokens-a.tokens||a.name.localeCompare(b.name));
+    return {...g,rows,shown:rows.filter(pass)};
+  }).filter(g=>g.shown.length);
+
+  return `
+  <div class="phead"><div><div class="eyebrow">${TOOLS.filter(t=>isOn(t)).length} of ${TOOLS.length} tools enabled · ${fmt(TAX())} tok every turn</div><h1>Optimize</h1>
+    <p class="sub">Tool schemas ship on every turn. Drop the ones nothing calls.</p>
+  </div></div>
+
+  <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr))">
+    ${kpi('Enabled',onT.length+' <span style="font-size:15px;color:var(--ink3)">/ '+TOOLS.length+'</span>','','tools the agent can reach for','')}
+    ${kpi('Shipping now',usd(project(TAX()).perMonth)+'<span style="font-size:15px;color:var(--ink3)">/mo</span>','',
+      `${k(TAX())} tok every turn`,
+      delta?`<span class="delta ${delta<0?'dn':'up'}">${delta<0?'−':'+'}${usd(Math.abs(project(delta).perMonth))}/mo</span>`:'')}
+    ${kpi('On but unused',TOOLS.filter(t=>isOn(t)&&t.tokens>0&&!t.calls).length,'','shipped every turn, never called','')}
+    ${kpi('Staged',pendCount(),'',pendCount()?'not written yet':'settings.json in sync','')}
+  </div>
+
+  ${(()=>{
+    /* Monthly projection. Every figure is measured tokens × the measured input rate ×
+       a turn count the user controls, and the basis is printed underneath. */
+    const idle=TOOLS.filter(t=>isOn(t)&&t.tokens>0&&!t.calls);
+    const idleTok=idle.reduce((a,t)=>a+t.tokens,0);
+    const stagedTok=Object.keys(S.pending).reduce((a,n)=>{
+      const t=TOOLS.find(x=>x.name===n); if(!t) return a;
+      return a+(S.pending[n]===false?t.tokens:-t.tokens);   // off saves, on costs
+    },0);
+    const row=(lbl,tok,col,strong)=>{
+      const p=project(tok);
+      return `<tr${strong?' style="font-weight:700"':''}>
+        <td>${lbl}</td>
+        <td class="r mono">${tok?k(tok):'—'}</td>
+        <td class="r mono"${col?` style="color:var(--${col})"`:''}>${tok?usd(p.perTurn):'—'}</td>
+        <td class="r mono"${col?` style="color:var(--${col})"`:''}>${tok?usd(p.perDay):'—'}</td>
+        <td class="r mono"${col?` style="color:var(--${col});font-size:15px"`:''}>${tok?usd(p.perMonth):'—'}</td></tr>`;
+    };
+    return `<div class="card" style="margin-bottom:14px">
+      <div class="chead"><div><div class="ctitle">What tool schemas cost you a month</div>
+        <div class="cnote" style="margin-top:3px">Schemas re-ship on every turn, so the only figure that matters is the recurring one.
+          A bare <b class="mono">deny</b> drops the schema from context; a scoped deny may leave it visible.</div></div></div>
+      <div class="tbl-scroll"><table class="tbl">
+        <thead><tr><th>Tool schemas</th><th class="r" style="width:90px">Tokens</th>
+          <th class="r" style="width:100px">Per turn</th><th class="r" style="width:100px">Per day</th>
+          <th class="r" style="width:110px">Per month</th></tr></thead>
+        <tbody>
+          ${row('Shipping today',TAX_LIVE(),'',false)}
+          ${pendCount()?row(`Staged change (${pendCount()} tool${pendCount()>1?'s':''})`,Math.abs(stagedTok),stagedTok>0?'jade':'rust',false):''}
+          ${row(`Enabled but never called (${idle.length})`,idleTok,'jade',false)}
+          ${row('After trimming every unused schema',Math.max(0,TAX()-idleTok),'',true)}
+        </tbody>
+      </table></div>
+      <div class="cbody" style="border-top:1px solid var(--line);display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <div style="flex:1;min-width:260px">
+          <div style="font-weight:700;font-size:15px">${idle.length
+            ? `Trim ${idle.length} unused schema${idle.length>1?'s':''} to save ${usd(project(idleTok).perMonth)} a month`
+            : `Nothing idle — every schema that ships has been used`}</div>
+          <div class="small muted" style="margin-top:3px">${trimmable.length
+            ? `${trimmable.length} of them ${trimmable.length>1?'are':'is'} tagged optional and safe to drop first, worth ${usd(project(trimTok).perMonth)}/month.`
+            : idle.length?`All of them are core or standard tools — review before trimming.`
+            :`Every optional tool that still ships has been reached for.`}</div>
+        </div>
+        <button class="btn ${trimmable.length?'pri':''}" id="autoTrim" ${trimmable.length?'':'disabled'}>Stage ${trimmable.length} change${trimmable.length===1?'':'s'}</button>
+      </div>
+      <div class="cbody" style="border-top:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--ink2)">
+        <span>Assume</span>
+        <input id="projHours" type="number" min="0.5" max="24" step="0.5" value="${S.proj.hoursPerDay}"
+          style="width:62px;padding:5px 7px;border:1px solid var(--line2);border-radius:7px;font:inherit;text-align:right">
+        <span>hours of agent work a day ×</span>
+        <input id="projDays" type="number" min="1" max="31" step="1" value="${S.proj.daysPerMonth}"
+          style="width:56px;padding:5px 7px;border:1px solid var(--line2);border-radius:7px;font:inherit;text-align:right">
+        <span>days a month</span>
+        <span class="tag ${measuredRate()?'ok':'warn'} mono" style="margin-left:auto">${fmt(turnsPerMonth())} turns/mo</span>
+      </div>
+      <div class="cbody" style="border-top:1px solid var(--line);padding-top:10px">
+        <div class="small muted">${projBasis()}. Cache-resident schemas keep billing until that cache expires, so a
+        published change shows up on the next session rather than the next turn.</div>
+      </div>
+    </div>`;
+  })()}
+
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+    <div class="segd" id="tfilter2">
+      <button aria-selected="${S.filter==='all'}" data-f="all">All ${TOOLS.length}</button>
+      <button aria-selected="${S.filter==='on'}" data-f="on">Shipping ${onT.length}</button>
+      <button aria-selected="${S.filter==='off'}" data-f="off">Blocked ${TOOLS.length-onT.length}</button>
+      <button aria-selected="${S.filter==='idle'}" data-f="idle">Never used</button>
+    </div>
+    <label style="display:flex;align-items:center;gap:9px;margin-left:auto;font-size:13.5px;color:var(--ink2);cursor:pointer">
+      <button class="tog" role="switch" aria-checked="${S.unlockCore}" id="unlockCore"></button>
+      Let me switch off core tools too</label>
+  </div>
+
+  ${groups.map(g=>{
+    const gOn=g.rows.filter(isOn), gTok=gOn.reduce((a,t)=>a+t.tokens,0);
+    return `<div class="card" style="margin-bottom:14px">
+      <div class="chead" style="align-items:flex-start">
+        <div style="flex:1"><div class="ctitle">${g.t}</div><div class="cnote" style="margin-top:3px;max-width:66ch">${g.s}</div></div>
+        <div style="text-align:right;flex:none">
+          <div class="mono" style="font-size:15px;font-weight:600">${usd(project(gTok).perMonth)}<span style="font-size:12px;color:var(--ink3)">/mo</span></div>
+          <div class="cnote">${fmt(gTok)} tok/turn</div>
+          <div class="cnote">${gOn.length} of ${g.rows.length} on</div></div>
+      </div>
+      <div class="tbl-scroll"><table class="tbl">
+        <thead><tr><th style="width:60px"></th><th>Tool</th><th class="r" style="width:110px">Schema</th>
+          <th class="r" style="width:86px">Calls</th><th class="r" style="width:118px">Per month</th><th style="width:150px">Status</th></tr></thead>
+        <tbody>${g.shown.map(t=>{
+          const m=meta(t.name), on=isOn(t), pend=S.pending[t.name]!==undefined;
+          const locked=m.tier==='core'&&!S.unlockCore;
+          const doc=DATA.docs&&DATA.docs[t.name];
+          return `<tr>
+            <td style="vertical-align:top"><button class="tog ${pend?'pend':''}" role="switch" aria-checked="${on}"
+              data-tool="${esc(t.name)}" ${locked?'disabled':''} aria-label="${esc(t.name)}"></button></td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <b style="font-size:15px">${esc(t.name)}</b>
+                <span class="tag ${TIER[m.tier].c}" title="${TIER[m.tier].h}">${locked?'🔒 ':''}${TIER[m.tier].t}</span>
+                ${t.calls?`<span class="tag vio mono">used ${t.calls}×</span>`:''}
+              </div>
+              <div class="small muted" style="margin-top:3px;max-width:64ch">${esc(m.d)}</div>
+              ${doc?`<button class="btn" style="height:26px;padding:0 9px;font-size:12.5px;margin-top:7px"
+                data-doc="${esc(t.name)}">View the schema Iris captured</button>
+                <div class="pre" id="doc-${esc(t.name)}" style="display:none;margin-top:7px">${esc(doc)}</div>`:''}
+            </td>
+            <td class="r mono" style="vertical-align:top">${t.tokens?fmt(t.tokens):'<span class="muted">not seen</span>'}</td>
+            <td class="r mono ${t.calls?'':'muted'}" style="vertical-align:top">${t.calls||0}</td>
+            <td class="r mono" style="vertical-align:top;color:${on&&t.tokens?'var(--ink)':'var(--ink3)'}">${on&&t.tokens?usd(project(t.tokens).perMonth):'—'}</td>
+            <td style="vertical-align:top">${pend?`<span class="tag warn"><i class="dot-s"></i>staged ${on?'on':'off'}</span>`
+                  : on?`<span class="tag ok"><i class="dot-s"></i>shipping</span>`
+                      :`<span class="tag"><i class="dot-s"></i>blocked</span>`}</td></tr>`;
+        }).join('')}</tbody></table></div></div>`;
+  }).join('')}
+
+  <p class="small muted" style="max-width:76ch">Blocked tools go into the <b class="mono">deny</b> list in <b class="mono">.claude/settings.json</b> and take effect on the agent's next session. Schemas sitting inside an already-cached prefix keep billing until that cache expires.<br><br>
+  Schema sizes and call counts come from the recorded traffic. The one-line summaries are written by Iris; where the full schema text was captured off the wire you can open it on the row above.</p>`;
+}
+/* ═══════════════ VIEW · GUARD ═══════════════ */
+function vGuard(){
+  const env=GUARD.env;
+  const prop=GUARD.proposal;
+  const may=(prop&&prop.may)||(env?['modify current repository','use staging services','run local tools']:[]);
+  const mayNot=(prop&&prop.mayNot)||['access production','use production credentials','destructive external ops'];
+  const accepted=!!(env&&env.acceptedAt);
+  const gDec=GUARD.decisions.filter(d=>!d.t||inWindow(d.t));
+  const dCount=k=>gDec.filter(d=>String(d.decision||'').toLowerCase()===k).length;
+  return `
+  <div class="phead"><div>
+    <div class="eyebrow">${env?.acceptedAt?'Envelope accepted':'No envelope accepted'} · ${dCount('allow')} allowed · ${dCount('ask')} asked · ${dCount('deny')} denied</div>
+    <h1>Guard</h1>
+    <p class="sub">What this task is allowed to do.</p>
+  </div></div>
+  <div class="split" style="margin-bottom:14px">
+    <div class="card"><div class="chead"><div><div class="ctitle">This session may</div>
+      <div class="cnote" style="margin-top:3px">The model can propose an envelope; it cannot widen one.
+        Guard catches accidents and drift, not a model working around it.</div></div>
+      <span class="tag ${accepted?'ok':'warn'}" style="margin-left:auto;align-self:flex-start">${accepted?'accepted':'not accepted'}</span></div>
+      <div class="cbody">
+        <div style="margin-bottom:10px"><label class="small muted">Task</label>
+          <input id="guardTask" style="width:100%;margin-top:4px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit"
+            value="${esc(env?.task||prop?.summary?.task||'')}" placeholder="Fix staging authentication"></div>
+        ${may.map(x=>`<div class="kv"><span>✓ ${esc(x)}</span></div>`).join('')}
+        <div class="hr"></div>
+        <div style="font-weight:600;margin:8px 0">It may not</div>
+        ${mayNot.map(x=>`<div class="kv"><span>✕ ${esc(x)}</span></div>`).join('')}
+        <div style="margin-top:14px;display:flex;gap:8px">
+          <button class="btn pri" id="guardAccept" ${authBlocked()?'disabled':''}>${accepted?'Re-accept envelope':'Accept envelope'}</button>
+          <button class="btn" id="guardPropose" ${authBlocked()?'disabled':''}>Regenerate proposal</button>
+        </div>
+        ${authBlocked()?'<div class="small muted" style="margin-top:8px">IRIS_UI_TOKEN is set. Open <span class="mono">/__monitor?iris_token=…</span> once.</div>':''}
+      </div></div>
+    <div class="card"><div class="chead"><div class="ctitle">Decisions</div>
+      <span class="cnote" style="margin-left:auto">${gDec.filter(d=>String(d.decision||'').toLowerCase()==='allow').length} allow · ${gDec.filter(d=>String(d.decision||'').toLowerCase()==='ask').length} ask · ${gDec.filter(d=>String(d.decision||'').toLowerCase()==='deny').length} deny · ${esc(timeWindow().label)}</span></div>
+      <div class="cbody">
+        ${GUARD.signals.length?`<div class="tag warn" style="margin-bottom:10px">${GUARD.signals.length} trajectory signal(s)</div>
+          ${GUARD.signals.slice(-5).map(s=>`<div class="small" style="margin-bottom:6px"><b>${esc(s.type)}</b> — ${esc(s.detail||'')}</div>`).join('')}`:
+          '<div class="small muted" style="margin-bottom:10px">No active authority expansion.</div>'}
+        ${gDec.length?gDec.slice(-30).reverse().map(d=>`
+          <div class="kv"><span class="mono small">${esc(d.t||'').slice(11,19)} · ${esc(d.tool||'?')}</span>
+            <b class="tag ${d.decision==='DENY'?'bad':d.decision==='ASK'?'warn':'ok'}">${esc(d.decision||'')}</b></div>
+          <div class="small muted" style="margin:-4px 0 8px">${esc(d.reason||'')}</div>`).join(''):
+          `<div class="empty">No PreToolUse decisions in ${esc(timeWindow().label.toLowerCase())}. ${GUARD.decisions.length?`Iris has ${fmt(GUARD.decisions.length)} recorded — try a wider range.`:'Run <b class="mono">npx @zero-drift/iris init</b> to install hooks.'}</div>`}
+      </div></div>
+  </div>`;
+}
+
+/* ═══════════════ VIEW · TRACE ═══════════════
+   Thousands of actions accumulate, so this view never renders them all: it filters
+   to a time window and a tool, then draws one page at a time. Each action is one
+   line high — the description and the command both truncate, and a click expands
+   the row you care about. */
+const TRACE_PAGE=100;
+const RISKY=/(^|\s)(rm|sudo|chmod|chown|kill|killall|dd|mkfs|shutdown|reboot)\s|>\s*\/|curl\s+[^|]*\|\s*(ba)?sh/;
+function vTrace(){
+  const win=traceWindow();
+  const inWin=actionsIn(win);
+  const tools=[...new Set(inWin.map(a=>a.tool))].sort();
+  const rows=(S.tt==='all'?inWin:inWin.filter(a=>a.tool===S.tt)).slice().reverse();  // newest first
+  const shown=rows.slice(0,S.tracePage*TRACE_PAGE);
+  const risky=rows.filter(a=>RISKY.test(a.arg||'')).length;
+
+  const hhmmss=t=>new Date(t).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const dayOf=t=>new Date(t).toLocaleDateString([], {month:'short',day:'numeric'});
+  const stampFor=(a,prev)=>{
+    const d=dayOf(a.t);
+    return (!prev||dayOf(prev.t)!==d) ? `${d} ${hhmmss(a.t)}` : hhmmss(a.t);
+  };
+
+  return `
+  <div class="phead"><div>
+    <div class="eyebrow">${fmt(ACTS.total)} actions recorded${ACTS.list.length?` · since ${dayOf(ACTS.list[0].t)}`:''} · ${esc(win.label)}</div>
+    <h1>Flight Recorder</h1>
+    <p class="sub">What actually ran, and what Guard decided.</p>
+  </div></div>
+
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+    <div class="segd" id="ttool">
+      <button aria-selected="${S.tt==='all'}" data-t="all">All ${inWin.length}</button>
+      ${tools.map(t=>`<button aria-selected="${S.tt===t}" data-t="${esc(t)}">${esc(t)} ${inWin.filter(a=>a.tool===t).length}</button>`).join('')}
+    </div>
+    ${risky?`<span class="tag warn" style="margin-left:auto">${risky} shell write${risky>1?'s':''}</span>`:''}
+  </div>
+
+  ${rows.length?`
+  <div class="card"><div class="cbody"><div class="trace">
+    ${shown.map((t,idx)=>{
+      const denied=!isOn(TOOLS.find(x=>x.name===t.tool)||{name:t.tool,on:true});
+      const warn=RISKY.test(t.arg||'');
+      /* cap-txt / .cmd mark captured agent output — rendered as-is, may contain any
+         text at all, and must never be read as UI copy. */
+      return `<div class="tr ${denied?'d':warn?'w':''}" data-act="${idx}" title="Click to expand">
+        <div class="i">${String(t.i).padStart(2,'0')}</div>
+        <div class="body">
+          <div class="hd">
+            <b style="font-size:13px">${esc(t.tool)}</b>
+            ${denied?'<span class="tag bad">now blocked</span>':''}
+            ${warn?'<span class="tag warn">shell write</span>':''}
+            <span class="small muted desc cap-txt">${esc(t.desc||'')}</span>
+            <span class="when">${stampFor(t,shown[idx-1])}</span>
+          </div>
+          ${t.arg?`<div class="cmd">${esc(t.arg)}</div>`:''}
+        </div></div>`;
+    }).join('')}
+  </div>
+  ${shown.length<rows.length?`<div style="display:flex;align-items:center;gap:12px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
+    <span class="small muted">Showing ${fmt(shown.length)} of ${fmt(rows.length)}</span>
+    <button class="btn" id="traceMore" style="margin-left:auto">Show ${Math.min(TRACE_PAGE,rows.length-shown.length)} more</button>
+    <button class="btn" id="traceAll">Show all ${fmt(rows.length)}</button>
+  </div>`:`<div class="small muted" style="margin-top:12px">All ${fmt(rows.length)} actions in this window are shown.</div>`}
+  </div></div>`
+  :`<div class="card"><div class="cbody"><div class="empty">No actions in ${win.label.toLowerCase()}${S.tt!=='all'?` for ${esc(S.tt)}`:''}.
+    ${ACTS.total?`Iris has ${fmt(ACTS.total)} recorded — try a wider window.`:'Nothing recorded yet.'}</div></div></div>`}`;
+}
+
+/* ═══════════════ DRAWER · call inspector ═══════════════ */
+let drawerStamp=null;
+function openCall(i){
+  if(!VW.length) return;
+  S.sel=Math.max(0,Math.min(VW.length-1,i));
+  const c=VW[S.sel];
+  drawerStamp=c.updatedAt||0;
+  $('#dTitle').textContent='Call '+c.id;
+  $('#dChips').innerHTML=[
+    ['mono',c.model],['mono',hhmm(c.time)],
+    c.status==null?['warn','in flight']:[c.status>=200&&c.status<300?'ok':'bad','HTTP '+c.status],
+    ['mono',ms(c.ms)],['vio mono',c.msgCount+' msgs'],
+    ['wire mono',fmt(c.in+c.cr+c.cw)+' in'],['mono',fmt(c.out)+' out'],
+    ['mono','max '+(c.params&&c.params.max_tokens!=null?k(c.params.max_tokens):'—')],
+    c.params.thinking?['vio','thinking: '+c.params.thinking]:null,
+    c.params.stream?['','stream']:null,
+    inTok(c)>LONG_CTX_THRESHOLD?[rateOf(c)?.longCtx?'bad':'wire','long ctx '+k(inTok(c))]:null,
+    c.iterCount>1?['warn',c.iterCount+' iterations']:null,
+    c.error?['bad',c.error]:null,
+  ].filter(Boolean).map(([k2,v])=>`<span class="tag ${k2}">${esc(v)}</span>`).join('');
+
+  const tot=(c.sysTok+c.toolTotal+c.msgTok)||1;
+  $('#dBody').innerHTML=`
+    <div class="card"><div class="cbody">
+      <div class="stack" style="height:11px">
+        <i style="background:var(--sys);width:${c.sysTok/tot*100}%"></i>
+        <i style="background:var(--too);width:${c.toolTotal/tot*100}%"></i>
+        <i style="background:var(--his);width:${c.msgTok/tot*100}%"></i></div>
+      <div style="display:flex;gap:14px;margin-top:9px;flex-wrap:wrap">
+        <span class="lg"><i class="sw" style="background:var(--sys)"></i>system ${fmt(c.sysTok)}</span>
+        <span class="lg"><i class="sw" style="background:var(--too)"></i>tools ${fmt(c.toolTotal)}</span>
+        <span class="lg"><i class="sw" style="background:var(--his)"></i>history ${fmt(c.msgTok)}</span></div>
+      <div class="hr" style="margin:12px 0"></div>
+      ${(()=>{
+        /* the actual invoice for this call: tokens × the rate each category bills at */
+        const r=rateOf(c);
+        if(!r) return `<div class="kv"><span>Billed</span><b>—</b></div>
+          <div class="small muted" style="margin-top:6px">No list price on file for <b class="mono">${esc(c.model)}</b>, so this call is left unpriced rather than counted as free.</div>`;
+        const line=(lbl,tok,rate,col)=>tok?`<div class="kv"><span>${lbl}<span class="mono small muted" style="margin-left:6px">${fmt(tok)} × $${rate}/Mtok</span></span>
+          <b${col?` style="color:var(--${col})"`:''}>${usd(tok*rate/1e6)}</b></div>`:'';
+        const fees=serverToolFees(c.serverTools);
+        return line('Input (uncached)',c.in,r.in,'')
+          +line('Cache read',c.cr,r.cr,'jade')
+          +line('Cache write · 5 min',c.cw5,r.cw5,'amber')
+          +line('Cache write · 1 hour',c.cw1,r.cw1,'amber')
+          +line('Output',c.out,r.out,'')
+          +(c.think?`<div class="kv"><span class="small muted" style="padding-left:12px">of which thinking</span><b class="mono small muted">${fmt(c.think)} tok</b></div>`:'')
+          +fees.lines.map(l=>`<div class="kv"><span>${esc(l.label)}<span class="mono small muted" style="margin-left:6px">×${l.count} · ${esc(l.note)}</span></span><b>${usd(l.usd)}</b></div>`).join('')
+          +fees.unpriced.map(l=>`<div class="kv"><span>${esc(l.label)}<span class="mono small muted" style="margin-left:6px">×${l.count}</span></span><b class="muted small">${esc(l.note)}</b></div>`).join('')
+          +`<div class="hr" style="margin:9px 0"></div>
+            <div class="kv"><span>Billed <span class="mono small muted">${esc(r.tier)}${r.note?' · '+esc(r.note):''}</span></span><b>${usd(c.cost)}</b></div>
+            <div class="kv"><span>Cache: avoided − write premium</span><b style="color:var(--${c.cacheNet>=0?'jade':'rust'})">${usd(c.saved)} − ${usd(c.cachePremium)} = ${usd(c.cacheNet)}</b></div>
+            ${inTok(c)>LONG_CTX_THRESHOLD?`<div class="kv"><span>Long context</span><b class="mono small">${k(inTok(c))} in · ${r.longCtx?'premium tier':'standard rates'}</b></div>`:''}
+            ${r.unknownTier?`<div class="kv"><span style="color:var(--rust)">Service tier</span><b class="mono small" style="color:var(--rust)">${esc(r.unknownTier)} — rates unverified</b></div>`:''}`;
+      })()}
+    </div></div>
+
+    <div class="acc open"><button class="ahead">${chevron}System prompt<span class="tag mono">${(c.sys||[]).length} blocks · ${fmt(c.sysTok)} tok</span></button>
+      <div class="abody">${(c.sys||[]).length?(c.sys||[]).map((b,i)=>`<div style="margin-top:9px">
+        <div class="btype">Block ${i+1} · ${fmt(b.c)} chars ${b.cache?'<span class="tag ok">cache breakpoint</span>':''}</div>
+        <div class="pre">${esc(b.x)}</div></div>`).join(''):'<div class="empty">No system prompt captured for this row.</div>'}</div></div>
+
+    <div class="acc"><button class="ahead">${chevron}Tool schemas<span class="tag mono">${(c.tools||[]).length} · ${fmt(c.toolTotal)} tok</span></button>
+      <div class="abody">${(c.tools||[]).length?`<table class="tbl" style="margin-top:8px">
+        <thead><tr><th>Tool</th><th class="r">Tokens</th><th class="r">Bytes</th><th class="r">Share</th></tr></thead>
+        <tbody>${(c.tools||[]).map(t=>`<tr><td><b>${esc(t.name)}</b></td><td class="r mono">${fmt(t.tokens)}</td>
+          <td class="r mono muted">${fmt(t.bytes)}</td><td class="r mono">${pct(t.tokens,c.toolTotal).toFixed(1)}%</td></tr>`).join('')}</tbody>
+      </table>`:'<div class="empty">No tool schemas captured for this row.</div>'}</div></div>
+
+    <div class="acc open"><button class="ahead">${chevron}Conversation<span class="tag mono">${(c.msgs||[]).length} messages</span></button>
+      <div class="abody">${(c.msgs||[]).length?(c.msgs||[]).map((m,i)=>`<div class="msg">
+        <div class="mhead">${esc(m.r)}<span class="n">#${i+1}</span>
+          <span class="n" style="margin-left:auto">${m.b.map(b=>b.t).join(' · ')}</span></div>
+        ${m.b.map(b=>`<div class="blk ${b.t==='thinking'?'think':''} ${b.e?'err':''}">
+          <div class="btype">${esc(b.t)}${b.n?` · <b style="color:var(--wire)">${esc(b.n)}</b>`:''}
+            <span style="margin-left:auto;color:var(--ink3)">${fmt(b.c)} chars</span></div>
+          ${b.x?`<div class="btxt">${esc(b.x)}</div>`:'<div class="btxt muted">(empty — redacted thinking)</div>'}
+        </div>`).join('')}</div>`).join(''):'<div class="empty">Conversation text is not stored on ledger rows.</div>'}</div></div>`;
+
+  $('#scrim').classList.add('on'); $('#drawer').classList.add('on');
+  $$('#trows tr').forEach(r=>r.classList.toggle('sel',+r.dataset.call===S.sel));
+  $$('.bar').forEach(b=>b.classList.toggle('sel',+b.dataset.call===S.sel));
+}
+function closeDrawer(){ $('#scrim').classList.remove('on'); $('#drawer').classList.remove('on'); }
+
+/* ═══════════════ toast / publish ═══════════════ */
+function toast(msg,ok=true){
+  const t=document.createElement('div'); t.className='toast';
+  t.innerHTML=`${ok?'<span class="ok">✓</span>':'<span style="color:#FCA5A5">!</span>'}<span>${esc(msg)}</span>`;
+  $('#toasts').appendChild(t); setTimeout(()=>{t.style.transition='.3s';t.style.opacity='0';t.style.transform='translateY(8px)';setTimeout(()=>t.remove(),300);},2600);
+}
+function syncPublish(){
+  const n=pendCount(); $('#pubCnt').textContent=n; $('#publish').disabled=!n||publishing||authBlocked();
+}
+/* ── Publish · the only thing here that writes to disk ──────────────────────
+   POSTs one tool at a time because that is the proxy's config API, then trusts
+   the deny list the proxy reports back — the file is the source of truth, not
+   this tab. A staged change that fails to write stays staged. */
+let publishing=false;
+async function publish(){
+  const staged=Object.keys(S.pending);
+  if(!staged.length||publishing) return;
+  if(authBlocked()){ toast('IRIS_UI_TOKEN is required — open /__monitor?iris_token=…',false); return; }
+  publishing=true;
+  const btn=$('#publish'), label=btn.firstChild;
+  btn.disabled=true; label.nodeValue='Publishing… ';
+
+  const failed=new Map();
+  let deny=null;
+  for(const name of staged){
+    try{
+      const r=await fetch('/__config',{method:'POST',headers:irisHeaders(),
+        body:JSON.stringify({tool:name,denied:S.pending[name]===false})});
+      const d=await r.json().catch(()=>({}));
+      if(!r.ok||!Array.isArray(d.deny)) throw new Error(d.error||('HTTP '+r.status));
+      deny=d.deny;
+    }catch(err){ failed.set(name,err.message); }
+  }
+
+  publishing=false; label.nodeValue='Publish changes ';
+  if(deny) applyDeny(deny);
+  staged.forEach(n=>{ if(!failed.has(n)) delete S.pending[n]; });
+  recalc(); render();
+
+  const wrote=staged.length-failed.size;
+  if(failed.size){
+    const [n,msg]=[...failed][0];
+    toast(`Wrote ${wrote} of ${staged.length} — ${esc(n)} failed: ${esc(msg)}`,false);
+  }else{
+    toast(`Published ${wrote} change${wrote>1?'s':''} — settings.json now denies ${LIVE.denySet.size} tools. Takes effect on the agent's next session.`);
+  }
+}
+function toggleTool(name){
+  const t=TOOLS.find(x=>x.name===name); if(!t) return;
+  const next=!isOn(t);
+  if(!next && meta(name).tier==='core' && !S.unlockCore){
+    toast(`${name} is a core tool — turn on "switch off core tools" first`,false); return;
+  }
+  if(next===t.on) delete S.pending[name]; else S.pending[name]=next;
+  syncPublish(); render();
+  const d=next?0:t.tokens;
+  toast(next?`${name} staged to ship again`:`${name} staged — ${fmt(t.tokens)} tokens off every turn`);
+}
+
+/* ═══════════════ command palette ═══════════════
+   Rebuilt each time the palette opens, so it always offers the calls and tools
+   Iris has seen — including ones that arrived a second ago. */
+function buildCmds(){
+  return [
+    ...[['overview','Overview'],['spend','Spend'],['traffic','Traffic'],['context','Context'],['tools','Optimize'],['guard','Guard'],['trace','Flight Recorder']]
+        .map(([v,lab])=>({t:'Go to '+lab,h:'view',run:()=>go(v)})),
+    {t:'Publish staged policy changes',h:pendCount()?pendCount()+' staged':'nothing staged',run:()=>publish()},
+    ...TOOLS.map(t=>({t:`What does ${t.name} do?`,h:meta(t.name).tier,run:()=>{go('tools');S.filter='all';render();}})),
+    ...VW.slice().reverse().map(c=>({t:`Call ${c.id} · ${c.status==null?'in flight':usd(c.cost)} · ${ms(c.ms)}`,h:c.fromHist?'ledger':'call',
+      run:()=>{go('traffic');setTimeout(()=>openCall(VW.findIndex(x=>(x.uid||x.id)===(c.uid||c.id))),40)}})),
+    ...TOOLS.map(t=>({t:`Toggle ${t.name}`,h:`${fmt(t.tokens)} tok`,run:()=>{go('tools');toggleTool(t.name)}})),
+    ...TRACE.slice(0,20).map(t=>({t:`Action ${t.i} · ${t.tool}`,h:'flight',run:()=>go('trace')})),
+  ];
+}
+let CMDS=[], cmdIdx=0, cmdShown=[];
+function renderCmd(q=''){
+  cmdShown=CMDS.filter(c=>c.t.toLowerCase().includes(q.toLowerCase())).slice(0,40);
+  cmdIdx=0;
+  $('#cmdkList').innerHTML=cmdShown.length?cmdShown.map((c,i)=>
+    `<div class="ci" data-i="${i}" data-a="${i===0?1:0}">${esc(c.t)}<span class="hint">${esc(c.h)}</span></div>`).join('')
+    :'<div class="empty">Nothing matches. Try a call id, a tool name, or a view.</div>';
+}
+function openK(){ CMDS=buildCmds(); $('#cmdk').classList.add('on'); $('#cmdkIn').value=''; renderCmd(); $('#cmdkIn').focus(); }
+function closeK(){ $('#cmdk').classList.remove('on'); $('#cmdkIn').blur(); }
+function moveK(d){
+  if(!cmdShown.length) return;
+  cmdIdx=(cmdIdx+d+cmdShown.length)%cmdShown.length;
+  $$('#cmdkList .ci').forEach((e,i)=>e.dataset.a=i===cmdIdx?1:0);
+  $$('#cmdkList .ci')[cmdIdx].scrollIntoView({block:'nearest'});
+}
+
+/* ═══════════════ router ═══════════════ */
+const VIEWS={overview:vOverview,spend:vSpend,traffic:vTraffic,context:vContext,tools:vTools,guard:vGuard,trace:vTrace};
+/* Before the first call lands there is genuinely nothing to show. Say so rather
+   than rendering a dashboard full of zeroes. */
+function vEmptyWindow(){
+  const w=timeWindow();
+  const n=HIST.records.length||C.length||ACTS.list.length;
+  return `<div class="phead"><div>
+    <div class="eyebrow">${esc(w.label)}</div>
+    <h1>Nothing in this range</h1>
+    <p class="sub">${n
+      ? `Iris has ${fmt(n)} recorded ${HIST.records.length?'calls':ACTS.list.length?'actions':'rows'} outside ${esc(w.label.toLowerCase())}. Pick a wider range in the header to see dashboard history.`
+      : 'No calls or actions recorded yet. Run Claude Code in this workspace and they will appear here.'}</p></div></div>`;
+}
+function vWaiting(){
+  return `<div class="phead"><div>
+    <div class="eyebrow">${LIVE.connected?'Connected · listening':'Connecting to the proxy'}</div>
+    <h1>Waiting for the agent to talk to the model</h1>
+    <p class="sub">Iris is attached to <b class="mono">${esc(LIVE.upstream||'the Anthropic API')}</b> on port
+      <b class="mono">${esc(String(LIVE.port??'—'))}</b>. Run <b class="mono">claude</b> in this workspace and the
+      first turn will appear here — payload, price and policy. Past spend is already on <b>Spend</b> if the ledger has rows; the header range filters every view.</p></div></div>
+    <div class="card"><div class="cbody">
+      <div class="kv"><span>Proxy</span><b class="mono">${LIVE.connected?'streaming':'not connected'}</b></div>
+      <div class="kv"><span>Deny list in settings.json</span><b class="mono">${LIVE.denySet.size} tools</b></div>
+      <div class="kv"><span>Schemas captured off the wire</span><b class="mono">${Object.keys(DATA.docs).length}</b></div>
+      <div class="kv"><span>Non-billable calls skipped</span><b class="mono">${LIVE.skipped}</b></div>
+      <div class="kv"><span>Billable calls in the spend ledger</span><b class="mono">${fmt(HIST.records.length)}</b></div>
+      ${HIST.records.length?'<div class="small muted" style="margin-top:8px">Past spend is already measured — open <b>Spend</b> (2), or choose <b>All</b> in the header.</div>':''}
+    </div></div>`;
+}
+function render(){
+  const keep=$('#main').scrollTop;
+  const standalone=S.view==='spend'||S.view==='trace'||S.view==='guard'||S.view==='tools';
+  const hasWindow=VW.length>0||(S.view==='spend'&&HIST.records.length)||(S.view==='trace'&&ACTS.list.length);
+  const hasAny=C.length||HIST.records.length||ACTS.list.length||standalone;
+  const c=latestCall();
+  $('#view').innerHTML=hasWindow||standalone?VIEWS[S.view]()
+    : hasAny?vEmptyWindow()
+    : vWaiting();
+  $$('.nav').forEach(n=>n.setAttribute('aria-current',n.dataset.v===S.view?'page':'false'));
+  paintTimeFilter();
+  if(c&&!c.fromHist&&(S.view==='overview'||S.view==='context')) bindRibbon(c);
+  if(VW.length&&S.view==='traffic') applyTrafficFilter();
+  if(c&&!c.fromHist&&S.view==='context'){ loadContextDiff(); loadToolResults(); }
+  $('#main').scrollTop=keep;
+  syncPublish();
+  syncStatus();
+}
+function loadContextDiff(){
+  const el=$('#ctxDiffBody'); if(!el) return;
+  fetch('/__context-diff').then(r=>r.json()).then(d=>{
+    if(!d.ok||!d.diff){ el.innerHTML='<div class="small muted">Need two consecutive requests to diff.</div>'; return; }
+    const x=d.diff;
+    el.innerHTML=`<div class="kv"><span>Delta</span><b class="mono">${x.deltaTokens>=0?'+':''}${fmt(x.deltaTokens||0)} tok</b></div>
+      ${(x.parts||[]).map(p=>`<div class="kv"><span>${esc(p.label||p.kind)}</span><b class="mono">${p.tokens>=0?'+':''}${fmt(p.tokens||0)}</b></div>`).join('')}
+      ${x.cachePrefixChanged?'<div class="tag warn" style="margin-top:8px">CACHE PREFIX CHANGED</div>':''}
+      <div class="small muted" style="margin-top:8px">${esc(x.summary||'')}</div>`;
+  }).catch(()=>{ el.innerHTML='<div class="small muted">Diff unavailable.</div>'; });
+}
+function loadToolResults(){
+  const el=$('#toolResBody'); if(!el) return;
+  fetch('/__tool-results').then(r=>r.json()).then(d=>{
+    const rows=(d.results||[]).slice(0,12);
+    if(!rows.length){ el.innerHTML='<div class="small muted">No tool_result blocks on the newest request.</div>'; return; }
+    el.innerHTML=`<div class="kv"><span>Attributed</span><b>${fmt(d.totalTokens||0)} tok</b></div>`+
+      rows.map(r=>`<div style="padding:8px 0;border-bottom:1px solid var(--line)">
+        <div style="display:flex;gap:8px;align-items:baseline"><b style="font-size:13px">${esc(r.toolName||'?')}</b>
+          <span class="mono small muted" style="margin-left:auto">${fmt(r.tokens||0)} tok</span></div>
+        <div class="small muted">${esc(r.source||'')}</div>
+        ${r.advice?`<div class="small" style="color:var(--amber);margin-top:3px">${esc(r.advice)}</div>`:''}
+      </div>`).join('');
+  }).catch(()=>{ el.innerHTML='<div class="small muted">Attribution unavailable.</div>'; });
+}
+function go(v){ S.view=v; render(); $('#main').scrollTop=0; }
+/* Row filters live on the rows themselves, so they must be re-applied after every
+   re-render — otherwise a new call would silently ignore the active filter. */
+function applyTrafficFilter(){
+  const f=S.tf;
+  $$('#tfilter button').forEach(b=>b.setAttribute('aria-selected',b.dataset.f===f));
+  $$('#trows tr').forEach(r=>{
+    const show=f==='all'||(f==='slow'&&r.dataset.slow==='1')||(f==='cold'&&r.dataset.cold==='1')||(f==='err'&&r.dataset.err==='1');
+    r.style.display=show?'':'none';
+    r.classList.toggle('sel',+r.dataset.call===S.sel);
+  });
+}
+
+/* ═══════════════ events ═══════════════ */
+document.addEventListener('click',e=>{
+  const nav=e.target.closest('.nav'); if(nav) return go(nav.dataset.v);
+  const goBtn=e.target.closest('[data-go]'); if(goBtn) return go(goBtn.dataset.go);
+  const tog=e.target.closest('.tog'); if(tog&&tog.dataset.tool){ if(tog.disabled) return; return toggleTool(tog.dataset.tool); }
+  const bar=e.target.closest('.bar'); if(bar) return openCall(+bar.dataset.call);
+  const row=e.target.closest('#trows tr'); if(row) return openCall(+row.dataset.call);
+  const acc=e.target.closest('.ahead'); if(acc) return acc.parentElement.classList.toggle('open');
+  const ct=e.target.closest('[data-ct]');
+  if(ct){ S.ctxTab=ct.dataset.ct; $('#main').scrollTop=0; return render(); }
+  const f2=e.target.closest('#tfilter2 button'); if(f2){ S.filter=f2.dataset.f; return render(); }
+  if(e.target.closest('#unlockCore')){ S.unlockCore=!S.unlockCore; render();
+    return toast(S.unlockCore?'Core tools unlocked — be careful, the agent needs these':'Core tools protected again'); }
+  const doc=e.target.closest('[data-doc]');
+  if(doc){ const el=$('#doc-'+CSS.escape(doc.dataset.doc));
+    const open=el.style.display!=='none'; el.style.display=open?'none':'block';
+    doc.textContent=open?'View the schema Iris captured':'Hide schema'; return; }
+  if(e.target.closest('#autoTrim')){
+    const list=TOOLS.filter(t=>isOn(t)&&meta(t.name).tier==='optional'&&!t.calls&&t.tokens>0);
+    if(!list.length) return;
+    const tok=list.reduce((a,t)=>a+t.tokens,0);
+    list.forEach(t=>{ if(t.on) S.pending[t.name]=false; else delete S.pending[t.name]; });
+    syncPublish(); render();
+    return toast(`${list.length} tools staged off — ${fmt(tok)} tokens a turn`);
+  }
+  const filt=e.target.closest('#tfilter button');
+  if(filt){ S.tf=filt.dataset.f; return applyTrafficFilter(); }
+  const tw=e.target.closest('#twin button');
+  if(tw){ S.tw=tw.dataset.w; S.tracePage=1; twSave(); recalc(); return render(); }
+  const tt=e.target.closest('#ttool button');
+  if(tt){ S.tt=tt.dataset.t; S.tracePage=1; return render(); }
+  if(e.target.closest('#traceMore')){ S.tracePage++; return render(); }
+  if(e.target.closest('#traceAll')){ S.tracePage=1e9; return render(); }
+  /* expand one row in place rather than re-rendering the list */
+  const tr=e.target.closest('.tr');
+  if(tr&&tr.dataset.act!==undefined) return tr.classList.toggle('open');
+  const ci=e.target.closest('.ci'); if(ci){ closeK(); cmdShown[+ci.dataset.i].run(); return; }
+  if(e.target.closest('#openK')) return openK();
+  if(e.target.id==='cmdk') return closeK();
+  if(e.target.closest('#dClose')||e.target.id==='scrim') return closeDrawer();
+  if(e.target.closest('#dPrev')) return openCall(S.sel-1);
+  if(e.target.closest('#dNext')) return openCall(S.sel+1);
+  if(e.target.closest('#publish')) return publish();
+  if(e.target.closest('#btnCtxDiff')) return loadContextDiff();
+  if(e.target.closest('#btnToolRes')) return loadToolResults();
+  if(e.target.closest('#guardPropose')){
+    const task=$('#guardTask')?.value||'';
+    return fetch('/__authority',{method:'POST',headers:irisHeaders(),
+      body:JSON.stringify({action:'propose',task})}).then(r=>r.json()).then(d=>{
+      GUARD.proposal=d; toast('Proposal regenerated'); render();
+    }).catch(e=>toast(String(e.message||e),false));
+  }
+  if(e.target.closest('#guardAccept')){
+    const task=$('#guardTask')?.value||'';
+    return fetch('/__authority',{method:'POST',headers:irisHeaders(),
+      body:JSON.stringify({action:'accept',task,envelope:GUARD.proposal?.envelope||GUARD.env||undefined})})
+      .then(r=>r.json()).then(async d=>{
+        if(!d.ok) throw new Error(d.error||'accept failed');
+        await refreshGuard(); toast('Authority envelope accepted'); render();
+      }).catch(e=>toast(String(e.message||e),false));
+  }
+});
+document.addEventListener('keydown',e=>{
+  const open=$('#cmdk').classList.contains('on');
+  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){ e.preventDefault(); return open?closeK():openK(); }
+  if(open){
+    if(e.key==='Escape') return closeK();
+    if(e.key==='ArrowDown'){e.preventDefault();return moveK(1)}
+    if(e.key==='ArrowUp'){e.preventDefault();return moveK(-1)}
+    if(e.key==='Enter'&&cmdShown[cmdIdx]){e.preventDefault();closeK();return cmdShown[cmdIdx].run()}
+    return;
+  }
+  if(e.target.tagName==='INPUT') return;
+  if(e.key==='Escape') return closeDrawer();
+  const dOpen=$('#drawer').classList.contains('on');
+  if(dOpen&&e.key==='j') return openCall(S.sel+1);
+  if(dOpen&&e.key==='k') return openCall(S.sel-1);
+  const map={'1':'overview','2':'spend','3':'traffic','4':'context','5':'tools','6':'guard','7':'trace'};
+  if(map[e.key]) return go(map[e.key]);
+});
+$('#cmdkIn').addEventListener('input',e=>renderCmd(e.target.value));
+
+/* Projection assumptions live in the page, persist across reloads, and re-render
+   every monthly figure at once. Delegated because the inputs are re-created on
+   each render. */
+document.addEventListener('change',e=>{
+  const h=e.target.closest('#projHours'), d=e.target.closest('#projDays');
+  if(!h&&!d) return;
+  const v=parseFloat(e.target.value);
+  if(!isFinite(v)||v<=0){ e.target.value=h?S.proj.hoursPerDay:S.proj.daysPerMonth; return; }
+  if(h) S.proj.hoursPerDay=Math.min(24,v); else S.proj.daysPerMonth=Math.min(31,Math.round(v));
+  projSave(); render();
+});
+
+/* ═══════════════ live wiring ═══════════════
+   Nothing below invents a number. Iris draws what /__events reports and writes
+   what /__config accepts; if the proxy stops, the UI says so. */
+function syncStatus(){
+  $('#envLabel').textContent=`${M.repo} · ${LIVE.connected?'recording':'proxy offline'}`;
+  $('#pulse').classList.toggle('off',!LIVE.connected);
+  const n=C.length, w=timeWindow();
+  $('#railFoot').innerHTML=
+    `Recording <b>proxy&nbsp;:${esc(String(LIVE.port??'—'))}</b><br>`+
+    `${n} call${n===1?'':'s'} this session · ${VW.length} in ${esc(w.label.toLowerCase())}${LIVE.skipped?` · ${LIVE.skipped} skipped`:''}<br>`+
+    `<span style="color:var(--${LIVE.connected?'jade':'rust'})">${LIVE.connected?'live stream':'stream down — retrying'}</span>`+
+    `<br><button id="resetBtn" class="reset-link">Clear captured data</button>`;
+}
+$('#env').addEventListener('click',()=>location.reload());
+
+/* Wipe the capture and start fresh. Delegated because the rail footer is
+   re-rendered on every status sync. Confirmed with a blocking prompt rather
+   than a toast-and-undo: the log files are gone once this runs. */
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#resetBtn')) return;
+  if(!confirm(
+    'Clear all captured data?\n\n'+
+    `\u2022 every request/response file in the capture folder\n`+
+    `\u2022 the spend ledger (${fmt(HIST.records.length)} billable calls)\n`+
+    `\u2022 the action log (${fmt(ACTS.list.length)} actions)\n`+
+    `\u2022 Guard decisions\n\n`+
+    'Your authority envelope and settings.json are kept.\n'+
+    'This cannot be undone.'
+  )) return;
+  fetch('/__reset',{method:'POST',headers:{'content-type':'application/json'},
+                    body:JSON.stringify({confirm:'clear'})})
+    .then(async r=>{
+      /* A 404 here means the page was served by an Iris build older than this
+         route — the proxy is running fine, it just needs restarting. Saying
+         "is the proxy running?" sends people looking in the wrong place. */
+      if(r.status===404){ toast('This Iris process predates the reset route — restart Iris and try again',false); return null; }
+      let d=null; try{ d=await r.json(); }catch(e){}
+      if(!r.ok||!d||!d.ok){ toast((d&&d.error)||`Reset failed (HTTP ${r.status})`,false); return null; }
+      return d;
+    })
+    .then(d=>{
+      if(!d) return;
+      toast(`Cleared ${fmt(d.files)} files · ${fmt(d.calls)} calls · ${fmt(d.actions)} actions`);
+      setTimeout(()=>location.reload(),700);
+    })
+    .catch(()=>toast('Could not reach the proxy — is it still running?',false));
+});
+
+/* One render per burst: a single turn can deliver a request and its response
+   within milliseconds, and the views rebuild their whole subtree. */
+let renderTimer=null;
+function scheduleRender(){
+  if(renderTimer) return;
+  renderTimer=setTimeout(()=>{
+    renderTimer=null;
+    recalc(); maybeRefreshDocs(); render();
+    /* the inspector holds a snapshot — redraw it only if its call actually changed,
+       so reading a completed call is never interrupted by later traffic */
+    if($('#drawer').classList.contains('on')&&VW[S.sel]&&(VW[S.sel].updatedAt||0)!==drawerStamp) openCall(S.sel);
+  },120);
+}
+
+/* A tool shipped that we hold no captured schema for — pull the docs again.
+   Rate-limited so a tool the proxy genuinely cannot describe can't spin. */
+function maybeRefreshDocs(){
+  if(LIVE.docsBusy) return;
+  if(Date.now()-(LIVE.docsAt||0)<5000) return;
+  if(!TOOLS.some(t=>t.tokens>0&&!DATA.docs[t.name])) return;
+  LIVE.docsBusy=true; LIVE.docsAt=Date.now();
+  fetch('/__tooldocs').then(r=>r.json())
+    .then(d=>{ applyToolDocs(d.tools); LIVE.docsBusy=false; recalc(); render(); })
+    .catch(()=>{ LIVE.docsBusy=false; });
+}
+
+function connect(){
+  const es=new EventSource('/__events');   // EventSource reconnects on its own
+  es.onopen=()=>{ LIVE.connected=true; syncStatus(); };
+  es.onerror=()=>{ LIVE.connected=false; syncStatus(); };
+  es.onmessage=ev=>{
+    let e; try{ e=JSON.parse(ev.data); }catch(err){ return; }
+    LIVE.lastEventAt=Date.now();
+    if(e.kind==='request'){ if(!ingestRequest(e)) return; }
+    else if(e.kind==='response'){ if(!ingestResponse(e)) return; }
+    else if(e.kind==='config'){ applyDeny(e.deny); }   // another tab published
+    else if(e.kind==='authority'||e.kind==='guard'){ refreshGuard().then(()=>scheduleRender()); return; }
+    else return;
+    scheduleRender();
+  };
+}
+
+async function boot(){
+  const get=(u,fn)=>fetch(u).then(r=>r.json()).then(fn).catch(()=>{});
+  await Promise.all([
+    get('/__meta',d=>{
+      LIVE.port=d.port; LIVE.upstream=d.upstream; LIVE.settingsPath=d.settingsPath;
+      LIVE.authRequired=!!d.authRequired;
+      M.session=d.session||M.session; M.repo=d.repo||M.repo; M.agent=d.agent||M.agent;
+      document.title=`Iris — ${M.repo}`;
+      if(authBlocked()) toast('IRIS_UI_TOKEN is required — open /__monitor?iris_token=…',false);
+    }),
+    get('/__config',d=>applyDeny(d.deny)),
+    get('/__tooldocs',d=>{ applyToolDocs(d.tools); LIVE.docsAt=Date.now(); }),
+    get('/__history',d=>{ HIST.records=d.records||[]; HIST.builtAt=d.builtAt; HIST.building=!!d.building; }),
+    get('/__actions',d=>{ mergeActions(d.actions); ACTS.total=d.total||ACTS.list.length; ACTS.loaded=true; }),
+    refreshGuard(),
+  ]);
+  recalc(); render();
+  connect();
+}
+boot();
+
+</script>
+</body>
+</html>

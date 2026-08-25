@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Proxy · Live Monitor</title>
+<style>
+  :root{
+    --bg:#e7ebf2;--bg2:#dfe4ec;--panel:#fbfcfe;--panel2:#eef2f8;
+    --line:#d7deea;--line2:#c4cedd;--ink:#1b2431;--soft:#69748a;--code:#2b3547;
+    --acc:#b26a00;--ok:#1f8a4d;--err:#c8372a;
+    --sys:#2f6fed;--too:#c08a1e;--msg:#7a45d1;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,sans-serif;
+    --sh:0 1px 2px rgba(23,33,54,.06),0 3px 10px rgba(23,33,54,.05);--r:12px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14.5px;line-height:1.5;display:flex;flex-direction:column;overflow:hidden;-webkit-font-smoothing:antialiased}
+  /* ---- header ---- */
+  header{flex:none;background:var(--panel);border-bottom:1px solid var(--line);padding:13px 22px;display:flex;align-items:center;gap:22px;flex-wrap:wrap;box-shadow:var(--sh);z-index:2}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:700;letter-spacing:.04em;font-size:16px}
+  .logo{display:grid;place-items:center;width:31px;height:31px;border-radius:9px;background:linear-gradient(135deg,#2f6fed,#7a45d1);color:#fff;font-size:17px}
+  .live-pill{display:inline-flex;align-items:center;gap:7px;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-weight:500;font-size:13px;letter-spacing:0;color:var(--soft)}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--err)}
+  .dot.on{background:var(--ok);box-shadow:0 0 0 3px rgba(31,138,77,.18)}
+  .metrics{display:flex;gap:22px;flex-wrap:wrap;margin-left:2px}
+  .metrics .m{display:flex;flex-direction:column;line-height:1.1}
+  .metrics .m b{font-size:23px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .metrics .m i{font-style:normal;font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--soft);margin-top:1px}
+  .pos{color:var(--ok)}
+  button{background:var(--panel2);color:var(--ink);border:1px solid var(--line2);border-radius:9px;padding:8px 15px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:600}
+  button:hover{border-color:var(--soft);background:#e6ebf3}
+  #clear{margin-left:auto}
+  /* ---- three-pane layout: summary · stream · detail ---- */
+  .app{flex:1;display:flex;min-height:0}
+  .side,.detail{flex:none;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:16px}
+  .side{width:312px;border-right:1px solid var(--line);background:var(--bg2)}
+  .detail{width:430px;border-left:1px solid var(--line);background:var(--bg2)}
+  .stream{flex:1;min-width:0;overflow:auto;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+  /* ---- panels & kv rows ---- */
+  .panel{border:1px solid var(--line);border-radius:var(--r);background:var(--panel);padding:15px 17px;box-shadow:var(--sh)}
+  .ptitle{font-size:11.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--soft);margin-bottom:13px;font-weight:700}
+  .muted{color:var(--soft)} .small{font-size:13px}
+  .kv{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:7px 0;border-bottom:1px solid var(--line)}
+  .kv:last-child{border-bottom:none}
+  .kv>span{color:var(--soft)} .kv>b{font-weight:700;font-variant-numeric:tabular-nums}
+  .kv.total{border-top:2px solid var(--line);margin-top:6px;padding-top:11px}
+  .kv.total>b{color:var(--acc);font-size:22px;letter-spacing:-.01em}
+  .kv.sub2{display:block;color:var(--soft);font-size:12.5px;border-bottom:none;padding:3px 0 7px}
+  .kv.sub2 span{display:inline-block;margin-right:10px}
+  b.model{color:var(--sys)} b.cost{color:var(--acc)}
+  /* ---- composition bar ---- */
+  .comp{display:flex;height:14px;border-radius:8px;overflow:hidden;margin:15px 0 12px;background:var(--panel2);border:1px solid var(--line)}
+  .comp .seg{height:100%}
+  .comp .seg.sys{background:var(--sys)} .comp .seg.too{background:var(--too)} .comp .seg.msg{background:var(--msg)}
+  .clegend{display:flex;flex-direction:column;gap:7px;font-size:13px;color:var(--soft)}
+  .clegend>span{display:flex;justify-content:space-between} .clegend b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .sw{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:8px;vertical-align:middle}
+  .sw.sys{background:var(--sys)}.sw.too{background:var(--too)}.sw.msg{background:var(--msg)}
+  /* ---- tool bar table ---- */
+  table{width:100%;border-collapse:collapse}
+  td{padding:6px 7px;border-bottom:1px solid var(--line);font-size:13.5px}
+  tr:last-child td{border-bottom:none}
+  td.n{color:var(--soft);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .bar{height:7px;background:var(--too);border-radius:4px}
+  /* ---- token-tax config: tool toggles ---- */
+  .cfgrow{display:flex;align-items:center;gap:11px;padding:8px 0;border-bottom:1px solid var(--line)}
+  .cfgrow:last-child{border-bottom:none}
+  .tgl{position:relative;flex:none;width:36px;height:21px;cursor:pointer}
+  .tgl input{position:absolute;inset:0;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:2}
+  .tgl .track{position:absolute;inset:0;background:var(--line2);border-radius:999px;transition:background .15s;pointer-events:none}
+  .tgl .knob{position:absolute;top:2px;left:2px;width:17px;height:17px;background:#fff;border-radius:50%;box-shadow:0 1px 2px rgba(23,33,54,.28);transition:transform .15s;pointer-events:none}
+  .tgl input:checked+.track{background:var(--ok)}
+  .tgl input:checked~.knob{transform:translateX(15px)}
+  .tgl input:disabled{cursor:progress}
+  .cfgname{flex:1;min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cfgname.off{color:var(--soft);font-weight:500}
+  .cfgmeta{flex:none;text-align:right;font-variant-numeric:tabular-nums;color:var(--soft);font-size:12.5px;line-height:1.3}
+  .cfgmeta b{color:var(--ink)} .cfgmeta .save{color:var(--ok);font-weight:600}
+  .taxsum{margin-top:13px;padding-top:12px;border-top:2px solid var(--line);font-size:13.5px}
+  .taxsum .row{display:flex;justify-content:space-between;gap:10px;padding:4px 0}
+  .taxsum .row b{font-variant-numeric:tabular-nums}
+  .taxsum .row.save b{color:var(--ok)}
+  .cfgnote{margin-top:11px;line-height:1.45}
+  .cfgmore{margin-top:11px;cursor:pointer;color:var(--sys);font-weight:600;font-size:12.5px;user-select:none}
+  .cfgmorelist{margin-top:8px}
+  /* ---- stream rows ---- */
+  .req{display:flex;align-items:center;gap:13px;border:1px solid var(--line);border-radius:11px;background:var(--panel);padding:11px 14px;cursor:pointer;box-shadow:var(--sh);transition:border-color .1s,box-shadow .1s}
+  .req:hover{border-color:var(--line2)}
+  .req.sel{border-color:var(--sys);box-shadow:0 0 0 2px rgba(47,111,237,.15),var(--sh)}
+  .badge{font-weight:700;padding:3px 9px;border-radius:7px;font-size:12px;font-variant-numeric:tabular-nums;background:var(--panel2);border:1px solid var(--line);color:var(--soft)}
+  .badge.ok{color:var(--ok);border-color:rgba(31,138,77,.3)}
+  .badge.err{color:var(--err);border-color:rgba(200,55,42,.3)}
+  .badge.pending{color:var(--acc)}
+  .rpath{font-family:var(--mono);color:var(--sys);font-size:13.5px}
+  .rmodel{font-size:12.5px;color:var(--soft)}
+  .rmeta{margin-left:auto;display:flex;gap:14px;color:var(--soft);font-size:12.5px;font-variant-numeric:tabular-nums;flex-wrap:wrap;justify-content:flex-end}
+  .empty{color:var(--soft);padding:56px 24px;text-align:center;border:1px dashed var(--line2);border-radius:12px;background:var(--panel);font-size:14.5px}
+  /* ---- detail: structured preview ---- */
+  .dhead{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .dtitle{font-weight:700;font-size:16px}
+  .dsub{margin-top:3px}
+  .chips{display:flex;flex-wrap:wrap;gap:7px}
+  .chip{font-size:12.5px;background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:4px 10px;color:var(--soft);box-shadow:var(--sh)}
+  .chip b{color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums}
+  .sec{border:1px solid var(--line);border-radius:11px;background:var(--panel);overflow:hidden;box-shadow:var(--sh)}
+  .sechead{display:flex;align-items:center;gap:9px;padding:11px 14px;cursor:pointer;user-select:none;font-weight:700;font-size:14.5px}
+  .sechead:hover{background:var(--panel2)}
+  .caret{color:var(--soft);display:inline-block;width:11px;transition:transform .12s}
+  .sec.open .caret{transform:rotate(90deg)}
+  .tag{margin-left:auto;font-weight:500;color:var(--soft);font-size:12.5px;font-variant-numeric:tabular-nums}
+  .secbody{display:none;border-top:1px solid var(--line);padding:13px 14px}
+  .sec.open .secbody{display:block}
+  /* ---- message cards ---- */
+  .msg{border:1px solid var(--line);border-radius:9px;margin-bottom:9px;overflow:hidden;background:var(--panel)}
+  .msg:last-child{margin-bottom:0}
+  .msg>.mh{display:flex;align-items:center;gap:9px;padding:8px 11px;background:var(--panel2)}
+  .role{font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 9px;border-radius:6px}
+  .role.user{background:rgba(47,111,237,.14);color:var(--sys)}
+  .role.assistant{background:rgba(122,69,209,.14);color:var(--msg)}
+  .role.system{background:rgba(178,106,0,.16);color:var(--acc)}
+  .blk{padding:9px 11px;border-top:1px solid var(--line)}
+  .blk:first-of-type{border-top:none}
+  .btype{display:flex;gap:9px;align-items:center;font-size:12px;color:var(--soft);margin-bottom:6px}
+  .btype .bt{font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:.04em}
+  .btype .bt.tool_use{color:var(--too)} .btype .bt.tool_result{color:var(--ok)} .btype .bt.thinking{color:var(--msg)}
+  pre.ptext,pre.bpre{margin:0;font-family:var(--mono);white-space:pre-wrap;word-break:break-word;color:var(--code);background:var(--panel2);border:1px solid var(--line);border-radius:7px;overflow:auto;line-height:1.5}
+  pre.ptext{font-size:13px;padding:9px 11px;max-height:210px}
+  pre.ptext.psys{max-height:640px;font-size:13px}
+  pre.bpre{font-size:12.5px;padding:11px 12px;max-height:430px}
+  /* ---- responsive ---- */
+  @media(max-width:1240px){.detail{width:380px}.side{width:272px}}
+  @media(max-width:1040px){.app{flex-direction:column;overflow:auto}.side,.detail{width:auto;border:none;border-bottom:1px solid var(--line)}.stream{overflow:visible}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="logo">◇</span> CLAUDE PROXY
+    <span class="live-pill"><span class="dot" id="dot"></span><span id="conn">connecting…</span></span>
+  </div>
+  <div class="metrics">
+    <span class="m"><b id="cReq">0</b><i>calls</i></span>
+    <span class="m"><b id="cIn">0</b><i>input</i></span>
+    <span class="m"><b id="cCache">0</b><i>cache read</i></span>
+    <span class="m"><b id="cOut">0</b><i>output</i></span>
+    <span class="m"><b id="cSaved" class="pos">$0.00</b><i>cache saved</i></span>
+  </div>
+  <button id="clear">clear</button>
+</header>
+<div class="app">
+  <aside class="side">
+    <div class="panel">
+      <div class="ptitle">Latest request · what ships</div>
+      <div id="sideEmpty" class="muted small">waiting for traffic…</div>
+      <div id="sideBody" hidden>
+        <div class="kv"><span>Model</span><b class="model" id="lModel">–</b></div>
+        <div class="kv"><span>History messages</span><b id="lMsgs">–</b></div>
+        <div class="kv"><span>System prompt</span><b id="lSys">–</b></div>
+        <div class="kv"><span>Tool schemas</span><b id="lTools">–</b></div>
+        <div class="kv total"><span>Payload est.</span><b id="lTotal">–</b></div>
+        <div class="comp" id="comp"></div>
+        <div class="clegend">
+          <span><span><i class="sw sys"></i>system</span><b id="lSysP">–</b></span>
+          <span><span><i class="sw too"></i>tools</span><b id="lTooP">–</b></span>
+          <span><span><i class="sw msg"></i>history</span><b id="lMsgP">–</b></span>
+        </div>
+      </div>
+    </div>
+    <div class="panel" id="toolPanel" hidden>
+      <div class="ptitle">Token tax · tools <span class="muted small" id="toolCountLbl"></span></div>
+      <div id="toolCfg"></div>
+      <div id="cfgMore"></div>
+      <div class="taxsum" id="taxSum"></div>
+      <div class="cfgnote muted small">Each tool's schema re-ships every turn. Toggle off what you don't need — it's written to <b>settings.json</b> and applies to the next Claude session.</div>
+    </div>
+    <div class="panel">
+      <div class="ptitle">Session totals</div>
+      <div class="kv"><span>Model</span><b class="model" id="sModel">–</b></div>
+      <div class="kv sub2" id="sModelSub">waiting for traffic</div>
+      <div class="kv"><span>Tokens</span><b id="sTok">0</b></div>
+      <div class="kv sub2" id="sTokSub"><span>in –</span><span>cache-r –</span><span>cache-w –</span><span>out –</span></div>
+      <div class="kv"><span>Est. cost</span><b class="cost" id="sCost">$0.00</b></div>
+      <div class="kv sub2" id="sCostSub">input · output · cache</div>
+    </div>
+  </aside>
+  <main class="stream" id="list">
+    <div class="empty" id="empty">Waiting for Claude Code traffic… run <b>claude</b> in a terminal.</div>
+  </main>
+  <aside class="detail">
+    <div class="dhead">
+      <div>
+        <div class="dtitle">Request <span id="dId">–</span></div>
+        <div class="dsub muted small" id="dSub">structured payload preview</div>
+      </div>
+      <button id="dLive" style="display:none">⟳ live</button>
+    </div>
+    <div id="detailEmpty" class="muted small">Select a call in the stream to inspect the exact payload it ships.</div>
+    <div id="detailBody" hidden>
+      <div class="chips" id="dParams"></div>
+      <div class="sec open"><div class="sechead"><span class="caret">▸</span>System prompt<span class="tag" id="dSysMeta"></span></div><div class="secbody" id="dSys"></div></div>
+      <div class="sec"><div class="sechead"><span class="caret">▸</span>Tools<span class="tag" id="dToolMeta"></span></div><div class="secbody" id="dTools"></div></div>
+      <div class="sec open"><div class="sechead"><span class="caret">▸</span>Messages<span class="tag" id="dMsgMeta"></span></div><div class="secbody" id="dMsgs"></div></div>
+      <div class="sec"><div class="sechead"><span class="caret">▸</span>Raw request JSON<span class="tag" id="dRawReqMeta"></span></div><div class="secbody"><pre class="bpre" id="dRawReq"></pre></div></div>
+      <div class="sec"><div class="sechead"><span class="caret">▸</span>Response<span class="tag" id="dResMeta">waiting…</span></div><div class="secbody"><pre class="bpre" id="dRawRes"></pre></div></div>
+    </div>
+  </aside>
+</div>
+<script>
+  const list=document.getElementById('list'), empty=document.getElementById('empty');
+  const rows={}, data={}, respById={}, modelById={};
+  let lastModel=null, followLatest=true, selectedId=null, latestSubId=null;
+  let denySet=new Set();          // tools disabled in settings.json (authoritative)
+  const toolCost={};              // name -> ~tokens, accumulated from payloads we've seen ship
+  let cfgMoreOpen=false;          // keep the "more disabled" list open across re-renders
+  let nReq=0,tIn=0,tCacheR=0,tCacheW=0,tOut=0,tCost=0,tSaved=0;
+  const fmt=n=>n==null?'–':n.toLocaleString('en-US');
+  const usd=n=>'$'+n.toLocaleString('en-US',{minimumFractionDigits:n<1?4:2,maximumFractionDigits:n<1?4:2});
+  const esc=s=>(s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const isSub=e=>(e.systemTokens>0||e.toolCount>1);
+  // Anthropic list prices, USD per 1M tokens. in=input, out=output, cw=cache write (5m), cr=cache read.
+  const PRICING={
+    opus:{in:15,out:75,cw:18.75,cr:1.5},
+    sonnet:{in:3,out:15,cw:3.75,cr:0.30},
+    haiku:{in:0.80,out:4,cw:1.00,cr:0.08},
+  };
+  function rateFor(model){if(!model)return null;const m=model.toLowerCase();for(const k in PRICING)if(m.includes(k))return Object.assign({tier:k},PRICING[k]);return null;}
+  function costOf(model,inp,cr,cw,out){const r=rateFor(model);if(!r)return null;return((inp||0)*r.in+(cr||0)*r.cr+(cw||0)*r.cw+(out||0)*r.out)/1e6;}
+  // What cache reads saved vs paying full input price for the same tokens.
+  function savedOf(model,cr){const r=rateFor(model);if(!r||!cr)return 0;return cr*(r.in-r.cr)/1e6;}
+  function upd(){document.getElementById('cReq').textContent=nReq;document.getElementById('cIn').textContent=fmt(tIn);document.getElementById('cCache').textContent=fmt(tCacheR);document.getElementById('cOut').textContent=fmt(tOut);document.getElementById('cSaved').textContent=usd(tSaved);
+    const totalTok=tIn+tCacheR+tCacheW+tOut;
+    document.getElementById('sTok').textContent=fmt(totalTok);
+    document.getElementById('sTokSub').innerHTML='<span>in '+fmt(tIn)+'</span><span>cache-r '+fmt(tCacheR)+'</span><span>cache-w '+fmt(tCacheW)+'</span><span>out '+fmt(tOut)+'</span>';
+    document.getElementById('sCost').textContent=usd(tCost);
+    const r=rateFor(lastModel);
+    document.getElementById('sCostSub').textContent=r?('rates/Mtok: in $'+r.in+' · out $'+r.out+' · cache-r $'+r.cr+' · cache-w $'+r.cw):'unknown model — cost not estimated';
+    document.getElementById('sModel').textContent=lastModel||'–';
+    document.getElementById('sModelSub').textContent=lastModel?(r?(r.tier+' pricing tier'):'no pricing match'):'waiting for traffic';
+  }
+  // ---- live stream: compact clickable rows ----
+  function onRequest(e){
+    if(empty)empty.style.display='none';
+    nReq++;
+    if(e.model){modelById[e.id]=e.model;lastModel=e.model;}
+    // remember each tool's ~token cost so the config panel can price it
+    const tl=(e.preview&&e.preview.tools)?e.preview.tools:(e.tools||[]);
+    tl.forEach(function(t){if(t&&t.name)toolCost[t.name]=t.tokens;});
+    upd();
+    updSidebar(e);
+    data[e.id]=e;
+    const el=document.createElement('div');el.className='req';el.dataset.id=e.id;
+    el.innerHTML=
+      '<span class="badge pending" data-badge>•••</span>'+
+      '<span class="rpath">'+e.method+' '+esc(e.url)+'</span>'+
+      (e.model?'<span class="rmodel">'+esc(e.model)+'</span>':'')+
+      '<span class="rmeta">'+
+        (e.toolCount?'<span>'+e.toolCount+' tools · '+fmt(e.toolTotal)+' tok</span>':'')+
+        (e.msgCount!=null?'<span>'+e.msgCount+' msgs</span>':'')+
+        '<span data-timing></span>'+
+        '<span>'+new Date(e.time).toLocaleTimeString()+'</span>'+
+      '</span>';
+    el.onclick=()=>selectReq(e.id,true);
+    list.prepend(el);
+    rows[e.id]=el;
+    if(isSub(e)){latestSubId=e.id;if(followLatest)selectReq(e.id,false);}
+  }
+  function onResponse(e){
+    respById[e.id]=e;
+    const el=rows[e.id];
+    if(el){
+      const b=el.querySelector('[data-badge]');
+      if(b){b.textContent=e.status;b.className='badge '+(e.status>=200&&e.status<300?'ok':'err');}
+      const parts=[];
+      if(e.ms!=null)parts.push(e.ms+'ms');
+      if(e.outputTokens!=null)parts.push('out '+fmt(e.outputTokens));
+      if(e.error)parts.push(esc(e.error));
+      const t=el.querySelector('[data-timing]');if(t)t.textContent=parts.join(' · ');
+    }
+    if(e.inputTokens!=null)tIn+=e.inputTokens;
+    if(e.cacheRead)tCacheR+=e.cacheRead;
+    if(e.cacheCreate)tCacheW+=e.cacheCreate;
+    if(e.outputTokens!=null)tOut+=e.outputTokens;
+    const cost=costOf(modelById[e.id],e.inputTokens,e.cacheRead,e.cacheCreate,e.outputTokens);
+    if(cost!=null)tCost+=cost;
+    tSaved+=savedOf(modelById[e.id],e.cacheRead);
+    upd();
+    if(selectedId===e.id)renderResp(e);
+  }
+  // ---- detail pane: structured request preview ----
+  function selectReq(id,manual){
+    if(manual)followLatest=false;
+    selectedId=id;
+    for(const k in rows)rows[k].classList.toggle('sel',k===id);
+    document.getElementById('dLive').style.display=followLatest?'none':'';
+    renderDetail(id);
+  }
+  function renderDetail(id){
+    const e=data[id];if(!e)return;
+    document.getElementById('detailEmpty').style.display='none';
+    document.getElementById('detailBody').hidden=false;
+    document.getElementById('dId').textContent='#'+id;
+    document.getElementById('dSub').textContent=(e.model||'')+' · '+new Date(e.time).toLocaleTimeString();
+    const p=e.preview||{}, pr=p.params||{};
+    const chips=[];
+    if(pr.max_tokens!=null)chips.push('<span class="chip">max <b>'+fmt(pr.max_tokens)+'</b></span>');
+    if(pr.temperature!=null)chips.push('<span class="chip">temp <b>'+esc(pr.temperature)+'</b></span>');
+    chips.push('<span class="chip">stream <b>'+(pr.stream?'on':'off')+'</b></span>');
+    if(pr.thinking)chips.push('<span class="chip">thinking <b>'+esc(pr.thinking)+'</b></span>');
+    if(p.cacheBreakpoints)chips.push('<span class="chip">cache pts <b>'+p.cacheBreakpoints+'</b></span>');
+    chips.push('<span class="chip">payload <b>~'+fmt((e.systemTokens||0)+(e.toolTotal||0)+(e.msgTokens||0))+' tok</b></span>');
+    document.getElementById('dParams').innerHTML=chips.join('');
+    // system prompt
+    const sys=(p.system&&p.system.blocks)?p.system.blocks:[];
+    if(sys.length){
+      document.getElementById('dSysMeta').textContent=sys.length+(sys.length>1?' blocks':' block')+' · ~'+fmt(e.systemTokens||0)+' tok';
+      document.getElementById('dSys').innerHTML=sys.map(function(b,i){
+        return '<div class="blk"><div class="btype"><span class="bt">block '+(i+1)+'</span><span>'+fmt(b.chars)+' chars</span>'+(b.cache?'<span style="color:var(--acc)">· cache ✓</span>':'')+'</div><pre class="ptext psys">'+esc(b.text)+'</pre></div>';
+      }).join('');
+    }else{document.getElementById('dSysMeta').textContent='none';document.getElementById('dSys').innerHTML='<div class="muted small">no system prompt</div>';}
+    // tools
+    const tools=p.tools||[];
+    if(tools.length){
+      document.getElementById('dToolMeta').textContent=tools.length+' · ~'+fmt(p.toolTotal||0)+' tok';
+      const max=tools[0].tokens||1;
+      document.getElementById('dTools').innerHTML='<table>'+tools.map(function(t){
+        const w=Math.max(3,Math.round(t.tokens/max*100));
+        return '<tr><td>'+esc(t.name)+'</td><td style="width:40%"><div class="bar" style="width:'+w+'%"></div></td><td class="n">'+fmt(t.tokens)+'</td></tr>';
+      }).join('')+'</table>';
+    }else{document.getElementById('dToolMeta').textContent='none';document.getElementById('dTools').innerHTML='<div class="muted small">no tools in this call</div>';}
+    // messages
+    const msgs=p.messages||[];
+    if(msgs.length){
+      document.getElementById('dMsgMeta').textContent=msgs.length+' · ~'+fmt(e.msgTokens||0)+' tok';
+      document.getElementById('dMsgs').innerHTML=msgs.map(function(m){
+        const bl=(m.blocks||[]).map(function(b){
+          const label=(b.type||'text')+(b.name?' · '+b.name:'');
+          return '<div class="blk"><div class="btype"><span class="bt '+esc(b.type||'text')+'">'+esc(label)+'</span><span>'+fmt(b.chars||0)+' chars</span>'+(b.isError?'<span style="color:var(--err)">· error</span>':'')+'</div><pre class="ptext">'+esc(b.text||'')+'</pre></div>';
+        }).join('');
+        const n=(m.blocks||[]).length;
+        return '<div class="msg"><div class="mh"><span class="role '+esc(m.role)+'">'+esc(m.role)+'</span><span class="muted small">'+n+(n===1?' block':' blocks')+'</span></div>'+bl+'</div>';
+      }).join('');
+    }else{document.getElementById('dMsgMeta').textContent='none';document.getElementById('dMsgs').innerHTML='<div class="muted small">no messages</div>';}
+    // raw request + response
+    document.getElementById('dRawReq').textContent=e.reqBody||'(not captured)';
+    document.getElementById('dRawReqMeta').textContent=e.reqBody?fmt(e.reqBody.length)+' chars':'';
+    renderResp(respById[id]);
+  }
+  function renderResp(r){
+    const meta=document.getElementById('dResMeta'), pre=document.getElementById('dRawRes');
+    if(!r){meta.textContent='waiting…';pre.textContent='(no response captured yet)';return;}
+    const parts=[String(r.status)];
+    if(r.ms!=null)parts.push(r.ms+'ms');
+    if(r.inputTotal!=null)parts.push('in '+fmt(r.inputTotal));
+    if(r.cacheRead)parts.push('cache-r '+fmt(r.cacheRead));
+    if(r.outputTokens!=null)parts.push('out '+fmt(r.outputTokens));
+    meta.textContent=parts.join(' · ');
+    pre.textContent=r.resBody||'(empty)';
+  }
+  // collapse/expand detail sections
+  document.querySelector('.detail').addEventListener('click',function(ev){
+    const h=ev.target.closest('.sechead');
+    if(h&&h.parentElement.classList.contains('sec'))h.parentElement.classList.toggle('open');
+  });
+  document.getElementById('dLive').onclick=function(){followLatest=true;this.style.display='none';if(latestSubId)selectReq(latestSubId,false);};
+  document.getElementById('clear').onclick=()=>{
+    list.querySelectorAll('.req').forEach(n=>n.remove());
+    for(const k in rows)delete rows[k];for(const k in data)delete data[k];for(const k in respById)delete respById[k];for(const k in modelById)delete modelById[k];
+    for(const k in toolCost)delete toolCost[k];
+    nReq=0;tIn=0;tCacheR=0;tCacheW=0;tOut=0;tCost=0;tSaved=0;upd();
+    followLatest=true;selectedId=null;latestSubId=null;
+    if(empty)empty.style.display='';
+    document.getElementById('sideBody').hidden=true;document.getElementById('sideEmpty').style.display='';renderToolConfig();
+    document.getElementById('detailBody').hidden=true;document.getElementById('detailEmpty').style.display='';document.getElementById('dLive').style.display='none';
+  };
+  // Update the left summary sidebar from the latest substantial request.
+  // Skip tiny helper calls (count_tokens, title generation) so the panel stays useful.
+  function updSidebar(e){
+    if(!isSub(e)) return;
+    document.getElementById('sideEmpty').style.display='none';
+    document.getElementById('sideBody').hidden=false;
+    document.getElementById('lModel').textContent=e.model||'–';
+    document.getElementById('lMsgs').textContent=e.msgCount!=null?e.msgCount:'–';
+    const sys=e.systemTokens||0, too=e.toolTotal||0, msg=e.msgTokens||0, tot=sys+too+msg;
+    document.getElementById('lSys').textContent='~'+fmt(sys)+' tok';
+    document.getElementById('lTools').textContent=(e.toolCount||0)+' · ~'+fmt(too)+' tok';
+    document.getElementById('lTotal').textContent='~'+fmt(tot)+' tok';
+    const pc=n=>tot?(n/tot*100):0, pct=n=>tot?Math.round(n/tot*100)+'%':'–';
+    document.getElementById('comp').innerHTML=
+      '<div class="seg sys" style="width:'+pc(sys)+'%"></div>'+
+      '<div class="seg too" style="width:'+pc(too)+'%"></div>'+
+      '<div class="seg msg" style="width:'+pc(msg)+'%"></div>';
+    document.getElementById('lSysP').textContent=pct(sys);
+    document.getElementById('lTooP').textContent=pct(too);
+    document.getElementById('lMsgP').textContent=pct(msg);
+    renderToolConfig();
+  }
+  // ---- token-tax config: per-tool toggles + potential savings ----
+  // Recurring cost = tokens re-shipped every turn, priced at the model's
+  // cache-read rate (tool schemas usually sit in the cached prefix).
+  function fmtUSD4(n){return n<0.01?('$'+n.toFixed(4)):usd(n);}
+  function toolRow(n){
+    const off=denySet.has(n), has=(n in toolCost), tok=has?toolCost[n]:0;
+    const rate=rateFor(lastModel), cr=rate?rate.cr:null;
+    const pt=(has&&cr!=null)?tok*cr/1e6:null;
+    const meta=has
+      ? '<b>'+fmt(tok)+'</b> tok<br><span class="'+(off?'save':'')+'">'+(pt!=null?fmtUSD4(pt)+'/turn':'')+'</span>'
+      : '<span class="muted">not measured</span>';
+    return '<div class="cfgrow">'+
+      '<label class="tgl"><input type="checkbox" data-tool="'+esc(n)+'"'+(off?'':' checked')+'><span class="track"></span><span class="knob"></span></label>'+
+      '<span class="cfgname'+(off?' off':'')+'">'+esc(n)+'</span>'+
+      '<span class="cfgmeta">'+meta+'</span>'+
+      '</div>';
+  }
+  function renderToolConfig(){
+    const tp=document.getElementById('toolPanel');
+    const all={}; Object.keys(toolCost).forEach(function(n){all[n]=1;}); denySet.forEach(function(n){all[n]=1;});
+    const allNames=Object.keys(all);
+    if(!allNames.length){tp.hidden=true;return;}
+    tp.hidden=false;
+    const rate=rateFor(lastModel), cr=rate?rate.cr:null;
+    const perTurn=function(tok){return cr!=null?tok*cr/1e6:null;};
+    // primary = tools you're actively managing (enabled, or disabled-but-measured);
+    // a re-enabled tool moves here instead of vanishing.
+    const primary=allNames.filter(function(n){return !denySet.has(n)||(n in toolCost);})
+      .sort(function(a,b){return ((toolCost[b]||-1)-(toolCost[a]||-1))||(a<b?-1:1);});
+    const more=allNames.filter(function(n){return denySet.has(n)&&!(n in toolCost);}).sort();
+    const measured=Object.keys(toolCost).length;
+    document.getElementById('toolCountLbl').textContent=measured?('· '+measured+' measured'):'';
+    let enTok=0,saveTok=0;
+    primary.forEach(function(n){if(n in toolCost){if(denySet.has(n))saveTok+=toolCost[n];else enTok+=toolCost[n];}});
+    document.getElementById('toolCfg').innerHTML=primary.map(toolRow).join('');
+    // summary + potential savings
+    const enUSD=perTurn(enTok), saveUSD=perTurn(saveTok), proj=saveUSD!=null?saveUSD*Math.max(1,nReq):null;
+    let sum='<div class="row"><span>Shipping now</span><span><b>'+fmt(enTok)+'</b> tok'+(enUSD!=null?' · '+fmtUSD4(enUSD)+'/turn':'')+'</span></div>';
+    sum+='<div class="row save"><span>Potential savings</span><span>'+(saveTok?('<b>'+fmt(saveTok)+' tok'+(saveUSD!=null?' · '+fmtUSD4(saveUSD)+'/turn':'')+'</b>'):'<span class="muted">toggle a tool off →</span>')+'</span></div>';
+    if(proj&&proj>0)sum+='<div class="row muted"><span>≈ saved over '+nReq+' calls so far</span><span>'+usd(proj)+'</span></div>';
+    document.getElementById('taxSum').innerHTML=sum;
+    // "more" = bulk deny-list tools we've never measured (re-enable moves them up)
+    if(more.length){
+      document.getElementById('cfgMore').innerHTML=
+        '<div class="cfgmore" id="cfgMoreToggle">'+(cfgMoreOpen?'▾':'▸')+' '+more.length+' more disabled tools</div>'+
+        '<div class="cfgmorelist" id="cfgMoreList" style="display:'+(cfgMoreOpen?'block':'none')+'">'+more.map(toolRow).join('')+'</div>';
+    }else{document.getElementById('cfgMore').innerHTML='';}
+  }
+  // toggle a tool on/off -> write settings.json deny list
+  document.getElementById('toolPanel').addEventListener('change',function(ev){
+    const cb=ev.target.closest('input[data-tool]');
+    if(!cb)return;
+    const tool=cb.getAttribute('data-tool'), denied=!cb.checked;
+    cb.disabled=true;
+    fetch('/__config',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({tool:tool,denied:denied})})
+      .then(function(r){return r.json();})
+      .then(function(d){if(d&&d.deny){denySet=new Set(d.deny);renderToolConfig();}else{cb.checked=!denied;cb.disabled=false;}})
+      .catch(function(){cb.checked=!denied;cb.disabled=false;});
+  });
+  document.getElementById('toolPanel').addEventListener('click',function(ev){
+    if(ev.target.id==='cfgMoreToggle'){
+      cfgMoreOpen=!cfgMoreOpen;
+      const l=document.getElementById('cfgMoreList');
+      if(l)l.style.display=cfgMoreOpen?'block':'none';
+      ev.target.textContent=(cfgMoreOpen?'▾ ':'▸ ')+ev.target.textContent.replace(/^[▸▾]\s*/,'');
+    }
+  });
+  function connect(){
+    const es=new EventSource('/__events');
+    const dot=document.getElementById('dot'),conn=document.getElementById('conn');
+    es.onopen=()=>{dot.classList.add('on');conn.textContent='connected';};
+    es.onerror=()=>{dot.classList.remove('on');conn.textContent='reconnecting…';};
+    es.onmessage=ev=>{const e=JSON.parse(ev.data);if(e.kind==='request')onRequest(e);else if(e.kind==='response')onResponse(e);else if(e.kind==='config'){denySet=new Set(e.deny);renderToolConfig();}};
+  }
+  // seed the tool config from settings.json before traffic arrives
+  fetch('/__config').then(function(r){return r.json();}).then(function(d){if(d&&d.deny){denySet=new Set(d.deny);renderToolConfig();}}).catch(function(){});
+  connect();
+</script>
+</body>
+</html>
