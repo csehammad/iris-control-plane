@@ -2,6 +2,11 @@ import { extractUsage } from "../src/billing/usage.mjs";
 import { rateFor, costOf, serverToolFees } from "../src/billing/pricing.mjs";
 import { cacheWritePremium, avoidedByCache } from "../src/billing/cache.mjs";
 import { monthlyProjection } from "../src/billing/projections.mjs";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { join, dirname } from "node:path";
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 let n = 0,
   fail = 0;
@@ -66,6 +71,21 @@ const prem = cacheWritePremium({ cw5m: 1000, cw1h: 1000 }, rates);
 assert(prem > 0, "write premium");
 const avoided = avoidedByCache({ cacheRead: 10000 }, rates);
 assert(avoided > 0, "avoided by cache");
+
+// Single source: pricing.mjs is the only price book. Both UIs import it over
+// /__pricing.mjs rather than declaring their own — three copies is how the
+// cancelled Sonnet 5 step-up and classic.html's retired Opus 4.1 rates survived.
+for (const ui of ["iris", "classic"]) {
+  const html = readFileSync(join(ROOT, "ui", `${ui}.html`), "utf8");
+  assert(/["'\/]__pricing\.mjs/.test(html), `${ui}.html imports the shared price book`);
+  assert(!/\bconst\s+(PRICE_BOOK|PRICING)\s*=/.test(html), `${ui}.html declares no price book of its own`);
+  assert(!/claude-opus-5['"]?\s*,?\s*(label|in)\s*:/.test(html), `${ui}.html holds no model rate rows`);
+}
+// The server must actually be able to hand that file to the browser.
+assert(
+  /url === "\/__pricing\.mjs"/.test(readFileSync(join(ROOT, "src/runtime/server.mjs"), "utf8")),
+  "server routes /__pricing.mjs",
+);
 
 const proj = monthlyProjection({ perRequestTokens: 1000, requestsPerDay: 100, ratePerMtok: 5 });
 assert(proj.estimated === true, "projection labeled estimated");

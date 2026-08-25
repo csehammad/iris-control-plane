@@ -43,6 +43,9 @@ export function resolveRuntimePaths(opts = {}) {
     process.env.PROXY_IRIS_PATH || join(PKG_ROOT, "ui", "iris.html");
   const classicHtml = join(PKG_ROOT, "ui", "classic.html");
   const guideHtml = join(PKG_ROOT, "ui", "guide.html");
+  /* Served to the browser as-is at /__pricing.mjs. Both UIs import their prices from
+     this file rather than carrying a copy, so there is one price book, not three. */
+  const pricingModule = join(PKG_ROOT, "src", "billing", "pricing.mjs");
 
   return {
     pkgRoot: PKG_ROOT,
@@ -58,6 +61,7 @@ export function resolveRuntimePaths(opts = {}) {
     decisionsPath,
     envelopePath,
     irisHtml,
+    pricingModule,
     classicHtml,
     guideHtml,
     irisPaths,

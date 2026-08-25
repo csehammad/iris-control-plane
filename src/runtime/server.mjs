@@ -263,6 +263,23 @@ export function startServer(opts = {}) {
       }
       return;
     }
+    /* The price book, served as the very module this process prices with. Both UIs
+       import it instead of carrying their own copy — a second book is exactly how
+       iris.html and classic.html drifted onto stale rates. */
+    if (method === "GET" && url === "/__pricing.mjs") {
+      try {
+        const src = readFileSync(paths.pricingModule, "utf8");
+        clientRes.writeHead(200, {
+          "content-type": "text/javascript; charset=utf-8",
+          "cache-control": "no-store",
+        });
+        clientRes.end(src);
+      } catch (e) {
+        json(clientRes, 404, { error: e.message });
+      }
+      return;
+    }
+
     if (method === "GET" && url === "/__classic") {
       try {
         const html = readFileSync(paths.classicHtml, "utf8");

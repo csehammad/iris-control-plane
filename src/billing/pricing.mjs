@@ -1,10 +1,15 @@
-// Shared Anthropic list prices (USD per 1M tokens), matching ui/iris.html.
+// Anthropic list prices (USD per 1M tokens) — the single source for the whole tool.
 //
-// This is the module form of the price book that iris.html carries inline. The two
-// must agree: a call priced here and the same call priced in the UI should produce
-// the same number, modifiers included. That is why `rateFor` takes a `billing`
-// object rather than a model id alone — fast mode, batch and data residency all
-// change the rate card, and a book that ignores them silently under-reports.
+// Nothing else holds a price. The server imports this module; both browser UIs
+// import it too, served verbatim at /__pricing.mjs (routed in runtime/server.mjs,
+// path in runtime/paths.mjs). It previously existed in three copies — here, inline
+// in iris.html, and a substring-matched one in classic.html — and they drifted
+// exactly as you would expect: a cancelled Sonnet 5 step-up lived on in two of
+// them, and classic.html priced every Opus generation at retired Opus 4.1 rates.
+//
+// `rateFor` takes a `billing` object rather than a model id alone because fast
+// mode, batch and data residency all change the rate card, and a book that ignores
+// them silently under-reports — fast mode by half.
 //
 //   in  base input        cr  cache hit / refresh (0.1x input)
 //   cw5 5-minute write    (1.25x input)
@@ -42,7 +47,7 @@ export const FAST_MODE = {
   "claude-opus-5": { in: 10, out: 50 },
   "claude-opus-4-8": { in: 10, out: 50 },
 };
-const CACHE_MULT = { cw5: 1.25, cw1: 2, cr: 0.1 };
+export const CACHE_MULT = { cw5: 1.25, cw1: 2, cr: 0.1 };
 
 /* Long context: kept as a mechanism with nothing in it, deliberately. Every model in
    the book with a 1M window (Opus 5/4.8/4.7/4.6, Sonnet 5, Sonnet 4.6, Fable 5,
@@ -50,19 +55,24 @@ const CACHE_MULT = { cw5: 1.25, cw1: 2, cr: 0.1 };
    cannot cross the threshold. If a premium tier is ever reintroduced, add
    `longCtx:{over:200000, in:…, cw5:…, cw1:…, cr:…, out:…}` to that model's row and
    the arithmetic below picks it up. An absent tier means the published price has none. */
-const LONG_CTX_THRESHOLD = 200000;
+export const LONG_CTX_THRESHOLD = 200000;
 
 /* Server-side tools bill on top of tokens and are reported in usage.server_tool_use.
    Code execution bills by container-time (1,550 free hours/month), which a request
    count alone cannot price — so it is surfaced as unpriced, never guessed at. */
-const SERVER_TOOL_RATES = {
+export const SERVER_TOOL_RATES = {
   web_search_requests: { usd: 0.01, label: "Web search", note: "$10 per 1,000 searches" },
   web_fetch_requests:  { usd: 0,    label: "Web fetch",  note: "no additional charge" },
 };
-const SERVER_TOOL_UNPRICED = {
+export const SERVER_TOOL_UNPRICED = {
   code_execution_requests: { label: "Code execution", note: "billed by container-hour, not per request" },
 };
 
+/* The rate card carries each price under both namings on purpose. `input`/`output`/
+   `cacheRead`/`cw5m`/`cw1h` is this module's API and what the tests and cache.mjs
+   read; `in`/`out`/`cr`/`cw5`/`cw1` is the price-book naming the UIs render from.
+   One object satisfying both is what lets the browser import this file directly
+   instead of keeping its own copy — which is how the two drifted apart before. */
 function toRates(row) {
   return {
     tier: row.tier ?? null,
@@ -71,6 +81,11 @@ function toRates(row) {
     cacheRead: row.cr,
     cw5m: row.cw5,
     cw1h: row.cw1,
+    in: row.in,
+    out: row.out,
+    cr: row.cr,
+    cw5: row.cw5,
+    cw1: row.cw1,
     note: row.note ?? null,
     longCtx: row.longCtx ?? false,
     unknownTier: row.unknownTier ?? null,
@@ -93,8 +108,9 @@ function inputTokensOf(usage) {
  *   What the request asked for merged with what the response says was applied.
  * @param {number} [inputTokens]  selects the long-context tier where a model has one
  * @returns {{ tier: string|null, input: number, output: number, cacheRead: number,
- *             cw5m: number, cw1h: number, note: string|null, longCtx: boolean,
- *             unknownTier: string|null }|null}
+ *             cw5m: number, cw1h: number, in: number, out: number, cr: number,
+ *             cw5: number, cw1: number, note: string|null, longCtx: boolean,
+ *             unknownTier: string|null }|null}  each price under both namings
  */
 export function rateFor(model, billing, inputTokens) {
   if (!model) return null;
