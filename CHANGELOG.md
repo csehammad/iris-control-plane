@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.0.2 — 2026-08-25
+
+### Fixed
+
+- `init` re-points Guard hooks at the copy of Iris being run. It previously treated "an Iris hook exists" as "nothing
+  to do", so a hook left pointing into a pruned `npx` cache — or a moved global install, or a relocated checkout —
+  could not be repaired by re-running `init` at all. It now reports `installed`, `path refreshed to this copy of Iris`,
+  or `already correct`.
+- Hooks belonging to anything other than Iris are preserved, including ones sharing an entry with an Iris hook. A
+  redundant second Iris hook is dropped instead of rewritten, so the hook cannot run twice per tool call.
+- Startup warns when a configured hook path no longer exists on disk, naming the path and the command that fixes it.
+  That failure was previously silent: every tool call would fail the hook with nothing shown anywhere.
+
 ## 1.0.1 — 2026-08-25
 
 ### Fixed

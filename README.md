@@ -44,6 +44,39 @@ Restart Claude Code, then open **http://127.0.0.1:8787**. The in-app guide is at
 If Iris is not running, Claude Code cannot reach the API — `ANTHROPIC_BASE_URL` still points at localhost. That is the
 trade for seeing the traffic.
 
+`init` wires **Claude Code** — the `claude` CLI, via `.claude/settings.json`. An editor's own built-in agent does not
+read that file, so its traffic will not appear in Iris.
+
+### Where the hook path comes from
+
+`init` writes an absolute path to the copy of Iris you ran, so the hook starts fast on every tool call — no package
+resolution per call. That path can move: an `npx` cache directory gets pruned and re-created under a new hash, a
+global install moves with your Node version, a checkout gets relocated.
+
+**Re-run `init` after any of those.** It re-points the hooks at the copy of Iris you just ran, and says so:
+
+```console
+$ npx @zero-drift/iris init
+  Guard hook  …/hooks.mjs  (path refreshed to this copy of Iris)
+```
+
+Iris also checks at startup, so a broken hook cannot fail quietly:
+
+```console
+  ! Guard hook points at a path that no longer exists:
+      /Users/you/.npm/_npx/OLDHASH/node_modules/@zero-drift/iris/bin/iris.mjs
+    Every tool call will fail this hook until it is re-pointed. Run:
+      npx @zero-drift/iris init
+```
+
+`npx` is fine to run this way. If you would rather the path never moved, install it and use the `iris` binary:
+
+```bash
+npm i -g @zero-drift/iris   # or: npm i -D @zero-drift/iris
+iris init                    # re-points the hooks at the installed copy
+iris
+```
+
 ### More than one project
 
 One Iris instance serves **one** project — it resolves the project from the directory you start it in. For a second

@@ -682,6 +682,40 @@ export function startServer(opts = {}) {
     return { action: "repointed", wired };
   }
 
+  /**
+   * Iris hook commands whose interpreter path no longer exists.
+   *
+   * Hook commands are absolute paths. An `npx` cache directory gets pruned and
+   * re-created under a new hash, a global install moves with the Node version,
+   * a checkout gets relocated — and the hook then fails on every tool call with
+   * nothing in the dashboard to explain it.
+   *
+   * @returns {string[]}
+   */
+  function brokenHookPaths() {
+    const found = new Set();
+    let settings;
+    try {
+      settings = JSON.parse(readFileSync(paths.settingsPath, "utf8"));
+    } catch {
+      // FALLBACK-GUARD: INTENTIONAL — no settings to check
+      return [];
+    }
+    for (const event of ["PreToolUse", "PostToolUse"]) {
+      const list = settings?.hooks?.[event];
+      for (const entry of Array.isArray(list) ? list : []) {
+        for (const h of Array.isArray(entry?.hooks) ? entry.hooks : []) {
+          const cmd = String(h?.command || "");
+          if (!cmd.includes("iris")) continue;
+          const m = cmd.match(/"([^"]+\.mjs)"/) || cmd.match(/(\S+\.mjs)/);
+          const file = m && (m[1] || m[2]);
+          if (file && !existsSync(file)) found.add(file);
+        }
+      }
+    }
+    return [...found];
+  }
+
   function banner() {
     const wire = autoWireSettings();
     console.log("");
@@ -713,6 +747,15 @@ export function startServer(opts = {}) {
       console.log(`  Settings      ANTHROPIC_BASE_URL is ${wire.url} — left as set, not a local Iris URL`);
     } else if (wire.action === "none") {
       console.log("  Point ANTHROPIC_BASE_URL here — Claude Code is protected.");
+    }
+
+    const broken = brokenHookPaths();
+    if (broken.length) {
+      console.log("");
+      console.log("  ! Guard hook points at a path that no longer exists:");
+      for (const file of broken) console.log(`      ${file}`);
+      console.log("    Every tool call will fail this hook until it is re-pointed. Run:");
+      console.log("      npx @zero-drift/iris init");
     }
     console.log("");
   }

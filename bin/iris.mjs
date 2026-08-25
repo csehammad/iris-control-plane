@@ -98,6 +98,12 @@ if (!cmd || cmd === "start" || cmd === "run") {
   });
   const result = adapter.install({ cwd, port });
 
+  const hookNote = {
+    installed: "installed",
+    refreshed: "path refreshed to this copy of Iris",
+    unchanged: "already correct",
+  }[result.hookAction] || "installed";
+
   const baseUrlNote = {
     set: "written",
     repointed: `re-pointed from ${result.previousBaseUrl}`,
@@ -114,7 +120,7 @@ Iris init complete (Claude Code)
     discovered ? `\n  Port        ${port} — discovered a running Iris for this project` : ""
   }
   Envelope    ${result.envelopePath}
-  Guard hook  ${result.hookPath}
+  Guard hook  ${result.hookPath}  (${hookNote})
 
 Bare tool denies remove schemas from Claude's context.
 PreToolUse gates execution against the Task Authority Envelope.

@@ -266,6 +266,56 @@ optOut.close();
 delete process.env.IRIS_AUTOWIRE;
 process.env.PROXY_SETTINGS_PATH = previousSettingsEnv;
 
+/* ── Hook paths ────────────────────────────────────────────────────────────
+   A hook command is an absolute path into wherever this copy of Iris lives.
+   npx caches are pruned, global installs move with the Node version. Re-running
+   init has to re-point them, or the hook fails on every tool call with no way
+   to repair it short of hand-editing JSON. */
+
+const hookRoot = mkdtempSync(join(tmpdir(), "iris-hook-"));
+mkdirSync(join(hookRoot, ".claude"), { recursive: true });
+const hookSettings = join(hookRoot, ".claude", "settings.json");
+const STALE = 'node "/nonexistent/_npx/OLDHASH/node_modules/@zero-drift/iris/bin/iris.mjs" hook';
+
+const fresh = installClaudeProject({ cwd: hookRoot });
+assert(fresh.hookAction === "installed", "first init installs the hook");
+assert(installClaudeProject({ cwd: hookRoot }).hookAction === "unchanged", "re-running init is a no-op");
+
+// The path moved: init must re-point it, not treat "some Iris hook exists" as done.
+const relocated = JSON.parse(readFileSync(hookSettings, "utf8"));
+relocated.hooks.PreToolUse[0].hooks[0].command = STALE;
+relocated.hooks.PostToolUse[0].hooks[0].command = STALE;
+writeFileSync(hookSettings, JSON.stringify(relocated, null, 2));
+
+const repaired = installClaudeProject({ cwd: hookRoot });
+assert(repaired.hookAction === "refreshed", "init reports a re-pointed hook");
+const afterRepair = JSON.parse(readFileSync(hookSettings, "utf8"));
+assert(
+  afterRepair.hooks.PreToolUse[0].hooks[0].command === repaired.hookCommand,
+  "stale PreToolUse path is re-pointed at this copy of Iris"
+);
+assert(
+  afterRepair.hooks.PostToolUse[0].hooks[0].command === repaired.hookCommand,
+  "stale PostToolUse path is re-pointed too"
+);
+
+// Someone else's hook in the same entry must survive, and Iris must not double up.
+const shared = JSON.parse(readFileSync(hookSettings, "utf8"));
+shared.hooks.PreToolUse[0].hooks.push({ type: "command", command: "./scripts/mine.sh" });
+shared.hooks.PreToolUse[0].hooks.unshift({ type: "command", command: STALE });
+writeFileSync(hookSettings, JSON.stringify(shared, null, 2));
+
+installClaudeProject({ cwd: hookRoot });
+const merged = JSON.parse(readFileSync(hookSettings, "utf8")).hooks.PreToolUse.flatMap((e) => e.hooks);
+assert(
+  merged.filter((h) => h.command.includes("iris.mjs")).length === 1,
+  "a duplicate Iris hook is dropped, not rewritten twice"
+);
+assert(
+  merged.some((h) => h.command === "./scripts/mine.sh"),
+  "a non-Iris hook sharing the entry survives"
+);
+
 /* ── Action dedupe ─────────────────────────────────────────────────────────
    The same action arrives over SSE and again from /__actions. The dashboard
    must key both the same way or every row renders twice. */

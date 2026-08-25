@@ -535,9 +535,11 @@ const PRICE_BOOK=[
   {id:'claude-opus-4-5',   label:'Opus 4.5',   in:5,   cw5:6.25,  cw1:10,   cr:0.50, out:25},
   {id:'claude-opus-4-1',   label:'Opus 4.1',   in:15,  cw5:18.75, cw1:30,   cr:1.50, out:75},
   {id:'claude-opus-4',     label:'Opus 4',     in:15,  cw5:18.75, cw1:30,   cr:1.50, out:75},
-  /* Sonnet 5 runs at introductory pricing through 2026-08-31, then steps up. */
-  {id:'claude-sonnet-5',   label:'Sonnet 5',   in:2,   cw5:2.50,  cw1:4,    cr:0.20, out:10,
-     until:'2026-09-01T00:00:00Z', after:{in:3, cw5:3.75, cw1:6, cr:0.30, out:15}},
+  /* Sonnet 5 launched at $2/$10 as introductory pricing through 2026-08-31. Anthropic
+     has since cancelled the scheduled step-up to $3/$15 — "the previously scheduled
+     increase ... on September 1, 2026 will not occur" — so $2/$10 is the standard
+     price and this row carries no `until`/`after`. */
+  {id:'claude-sonnet-5',   label:'Sonnet 5',   in:2,   cw5:2.50,  cw1:4,    cr:0.20, out:10},
   {id:'claude-sonnet-4-6', label:'Sonnet 4.6', in:3,   cw5:3.75,  cw1:6,    cr:0.30, out:15},
   {id:'claude-sonnet-4-5', label:'Sonnet 4.5', in:3,   cw5:3.75,  cw1:6,    cr:0.30, out:15},
   {id:'claude-sonnet-4',   label:'Sonnet 4',   in:3,   cw5:3.75,  cw1:6,    cr:0.30, out:15},
@@ -602,6 +604,8 @@ function rateFor(model,billing,inputTokens){
   let r={tier:hit.label,in:hit.in,cw5:hit.cw5,cw1:hit.cw1,cr:hit.cr,out:hit.out,note:null,
          longCtx:false, unknownTier:null};
   const add=n=>{ r.note=(r.note?r.note+' · ':'')+n; };
+  /* Dated price change: no row uses this today, kept so a future step-up is one
+     `until`/`after` pair rather than a code change. */
   if(hit.until&&Date.now()>=Date.parse(hit.until)) Object.assign(r,hit.after);
 
   const b=billing||{};

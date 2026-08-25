@@ -20,32 +20,75 @@ const CLI_PATH = join(PKG_ROOT, "bin", "iris.mjs");
 const HOOK_PATH = resolve(dirname(fileURLToPath(import.meta.url)), "hooks.mjs");
 const HOOK_CMD = `node "${CLI_PATH}" hook`;
 
-function hookCommandLooksInstalled(raw) {
+/**
+ * Any command that runs Iris as a hook, wherever that copy of Iris lives —
+ * current layout, the pre-1.0 entry points, or the old `iris-agent` binary.
+ * @param {unknown} raw
+ */
+export function isIrisHookCommand(raw) {
   const s = String(raw || "");
   return (
-    (s.includes("bin/iris.mjs") && s.includes("hook")) ||
+    (s.includes("iris.mjs") && s.includes("hook")) ||
     s.includes("iris-agent hook") ||
     s.includes("adapters/claude/hooks.mjs") ||
     s.includes("guard/hook.mjs")
   );
 }
 
-function isLegacyHookCommand(raw) {
-  const s = String(raw || "");
-  return s.includes("adapters/claude/hooks.mjs") || s.includes("guard/hook.mjs");
-}
-
+/**
+ * Point every Iris hook at the copy of Iris being run right now, and add one
+ * if the project has none.
+ *
+ * A hook command is an absolute path, and the path moves: `npx` resolves into
+ * a cache directory that is pruned and re-created under a new hash, a global
+ * install moves with the Node version, a checkout gets relocated. Treating
+ * "some Iris hook exists" as "nothing to do" left projects pointing at a
+ * deleted interpreter path, and re-running init could not repair it — the
+ * exact situation this function now fixes.
+ *
+ * Hooks that are not Iris are left untouched, including ones sharing an entry
+ * with an Iris hook. A second, redundant Iris hook is dropped rather than
+ * rewritten, so the hook cannot end up running twice per tool call.
+ *
+ * @param {unknown} list
+ * @param {string} hookCmd
+ * @returns {{ hooks: object[], action: "installed"|"refreshed"|"unchanged" }}
+ */
 function ensureHookEvent(list, hookCmd) {
-  const arr = Array.isArray(list) ? list.map((entry) => {
-    if (isLegacyHookCommand(JSON.stringify(entry))) {
-      return { matcher: entry.matcher || "*", hooks: [{ type: "command", command: hookCmd }] };
+  const arr = Array.isArray(list) ? list : [];
+  const out = [];
+  let installed = false;
+  let changed = false;
+
+  for (const entry of arr) {
+    const hooks = Array.isArray(entry?.hooks) ? entry.hooks : [];
+    if (!hooks.some((h) => isIrisHookCommand(h?.command))) {
+      out.push(entry);
+      continue;
     }
-    return entry;
-  }) : [];
-  if (!arr.some((h) => hookCommandLooksInstalled(JSON.stringify(h)) && !isLegacyHookCommand(JSON.stringify(h)))) {
-    arr.push({ matcher: "*", hooks: [{ type: "command", command: hookCmd }] });
+    const next = [];
+    for (const h of hooks) {
+      if (!isIrisHookCommand(h?.command)) {
+        next.push(h);
+        continue;
+      }
+      if (installed) {
+        changed = true; // redundant duplicate — drop it
+        continue;
+      }
+      installed = true;
+      if (h?.command !== hookCmd || h?.type !== "command") changed = true;
+      next.push({ ...h, type: "command", command: hookCmd });
+    }
+    if (next.length) out.push({ ...entry, matcher: entry.matcher || "*", hooks: next });
+    else changed = true;
   }
-  return arr;
+
+  if (!installed) {
+    out.push({ matcher: "*", hooks: [{ type: "command", command: hookCmd }] });
+    return { hooks: out, action: "installed" };
+  }
+  return { hooks: out, action: changed ? "refreshed" : "unchanged" };
 }
 
 function ensureGitignore(projectRoot) {
@@ -126,8 +169,18 @@ export function installClaudeProject(opts = {}) {
   if (!Array.isArray(settings.permissions.deny)) settings.permissions.deny = [];
 
   settings.hooks = settings.hooks || {};
-  settings.hooks.PreToolUse = ensureHookEvent(settings.hooks.PreToolUse, HOOK_CMD);
-  settings.hooks.PostToolUse = ensureHookEvent(settings.hooks.PostToolUse, HOOK_CMD);
+  const pre = ensureHookEvent(settings.hooks.PreToolUse, HOOK_CMD);
+  const post = ensureHookEvent(settings.hooks.PostToolUse, HOOK_CMD);
+  settings.hooks.PreToolUse = pre.hooks;
+  settings.hooks.PostToolUse = post.hooks;
+  // "refreshed" outranks "installed": a moved path is the notable event, and a
+  // genuine first install refreshes nothing, so it still reports "installed".
+  const hookAction =
+    pre.action === "refreshed" || post.action === "refreshed"
+      ? "refreshed"
+      : pre.action === "installed" || post.action === "installed"
+        ? "installed"
+        : "unchanged";
 
   mkdirSync(paths.sessions, { recursive: true });
   migrateLegacyAuthority(id);
@@ -171,6 +224,8 @@ export function installClaudeProject(opts = {}) {
     proxyUrl: settings.env.ANTHROPIC_BASE_URL,
     baseUrlAction,
     previousBaseUrl: previousBaseUrl || null,
+    hookAction,
+    hookCommand: HOOK_CMD,
     envelopePath: envPath,
     hookPath: HOOK_PATH,
   };
