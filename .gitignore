@@ -148,3 +148,7 @@ vite.config.ts.timestamp-*
 # Generated demo captures (see demo_screens/README.md)
 demo_screens/*.png
 demo_screens/index.json
+
+# Source video for the site overlay (deployed copy lives in site/, which is ignored)
+docs/*.mp4
+docs/*.mov

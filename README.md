@@ -343,6 +343,14 @@ Token counts are calibrated estimates and can differ from final billing totals. 
 
 ---
 
+## Acknowledgements
+
+The initial investigation into Claude Code's context and tool-schema overhead was inspired in part by Matt Pocock's [How To Kill The Bloat In Claude Code's System Prompt](https://www.aihero.dev/how-to-kill-the-bloat-in-claude-codes-system-prompt).
+
+Iris grew from that starting point into a tool for inspecting what Claude Code sends, removing unused tool schemas, controlling what the agent is allowed to do, and recording what actually ran.
+
+---
+
 ## License
 
 MIT.
