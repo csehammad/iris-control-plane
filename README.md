@@ -4,7 +4,7 @@
 
 [![npm](https://img.shields.io/npm/v/@zero-drift/iris.svg)](https://www.npmjs.com/package/@zero-drift/iris)
 [![node](https://img.shields.io/node/v/@zero-drift/iris.svg)](https://nodejs.org)
-[![tests](https://img.shields.io/badge/tests-485%20passing-brightgreen.svg)](#running-from-a-checkout)
+[![tests](https://img.shields.io/badge/tests-548%20passing-brightgreen.svg)](#running-from-a-checkout)
 [![license](https://img.shields.io/npm/l/@zero-drift/iris.svg)](./LICENSE)
 
 Iris is a local proxy and policy layer for [Claude Code](https://code.claude.com). It binds to `127.0.0.1` and sits between Claude Code and Anthropic.
@@ -18,6 +18,7 @@ Claude Code  →  Iris :8787  →  api.anthropic.com
                     │
                     ├── Context     inspect what each request carries
                     ├── Optimize    find tool schemas consuming unused context
+                    ├── Spend       measured cost, per project and across all
                     ├── Guard       allow, ask, or deny before execution
                     └── Recorder    record actions and policy decisions
 ```
@@ -244,7 +245,7 @@ git clone https://github.com/csehammad/iris-control-plane.git
 cd iris-control-plane
 
 npm start      # proxy + UI on 127.0.0.1:8787
-npm test       # 485 assertions across 10 suites
+npm test       # 548 assertions across 11 suites
 ```
 
 Iris has no runtime or development package dependencies, so there is no install step after cloning.

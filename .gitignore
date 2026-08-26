@@ -144,3 +144,7 @@ vite.config.ts.timestamp-*
 
 # Generated static site (published elsewhere)
 /site/*
+
+# Generated demo captures (see demo_screens/README.md)
+demo_screens/*.png
+demo_screens/index.json
