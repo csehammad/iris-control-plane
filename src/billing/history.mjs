@@ -2,7 +2,8 @@
  * Payload-free spend ledger (history-index.json).
  */
 
-import { readFileSync, writeFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
+import { writeJsonAtomic } from "../runtime/atomic.mjs";
 import { join } from "node:path";
 import { extractUsage } from "./usage.mjs";
 import { estimateRequest } from "../context/analyzer.mjs";
@@ -69,9 +70,54 @@ export function createHistoryLedger({ path, logDir, max = HISTORY_MAX_RECORDS })
     }
   }
 
+  /**
+   * Fold in anything another writer has added since this process last read.
+   *
+   * Two Iris instances can legitimately serve one project — the port logic
+   * re-points settings but does not stop a second instance from starting — and
+   * each holds the whole ledger in memory. A blind whole-file write therefore
+   * loses every call the other instance recorded, with no error and nothing on
+   * screen to show it.
+   *
+   * Rows are immutable and keyed by uid, so the union is well defined and this
+   * needs no lock. Re-sorting afterwards keeps the FIFO cap meaningful: without
+   * it, merged rows land at the end regardless of age and eviction would start
+   * discarding recent calls.
+   *
+   * @returns {number} rows adopted from the other writer
+   */
+  function mergeFromDisk() {
+    let j;
+    try {
+      j = JSON.parse(readFileSync(path, "utf8"));
+    } catch {
+      // FALLBACK-GUARD: INTENTIONAL — no file yet, or mid-write by a pre-atomic
+      // Iris. Either way this process's own records are still the best available.
+      return 0;
+    }
+    if (!Array.isArray(j?.records)) return 0;
+
+    let adopted = 0;
+    for (const r of j.records) {
+      if (r && !historyUids.has(r.uid) && addHistory(r)) adopted++;
+    }
+    if (adopted) {
+      historyIndex.sort((a, b) => String(a.time || "").localeCompare(String(b.time || "")));
+      if (historyIndex.length > max) {
+        const drop = historyIndex.splice(0, historyIndex.length - max);
+        for (const d of drop) historyUids.delete(d.uid);
+      }
+    }
+    return adopted;
+  }
+
   function save() {
     try {
-      writeFileSync(path, JSON.stringify({ builtAt: new Date().toISOString(), records: historyIndex }));
+      /* Merge, then write atomically. The merge stops a co-resident instance's
+         calls being dropped; the atomic write stops a fleet reader seeing a
+         fragment and scoring this whole project as zero. */
+      mergeFromDisk();
+      writeJsonAtomic(path, { builtAt: new Date().toISOString(), records: historyIndex });
     } catch (e) {
       console.error("  ! could not persist history index:", e.message);
     }
@@ -171,6 +217,7 @@ export function createHistoryLedger({ path, logDir, max = HISTORY_MAX_RECORDS })
     addHistory,
     load,
     save,
+    mergeFromDisk,
     build,
     clear,
   };

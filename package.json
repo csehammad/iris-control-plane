@@ -1,7 +1,7 @@
 {
   "name": "@zero-drift/iris",
-  "version": "1.0.2",
-  "description": "Local context, cost, policy and execution control for Claude Code. Remove unused tool context, gate risky actions, and investigate every session.",
+  "version": "1.0.3",
+  "description": "Inspect Claude Code context, remove unused tool schemas, and control tool execution before it happens.",
   "type": "module",
   "bin": {
     "iris": "./bin/iris.mjs"

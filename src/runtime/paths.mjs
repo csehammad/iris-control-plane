@@ -41,11 +41,13 @@ export function resolveRuntimePaths(opts = {}) {
   const envelopePath = process.env.IRIS_ENVELOPE_PATH || authorityPath(projectId);
   const irisHtml =
     process.env.PROXY_IRIS_PATH || join(PKG_ROOT, "ui", "iris.html");
-  const classicHtml = join(PKG_ROOT, "ui", "classic.html");
   const guideHtml = join(PKG_ROOT, "ui", "guide.html");
   /* Served to the browser as-is at /__pricing.mjs. Both UIs import their prices from
      this file rather than carrying a copy, so there is one price book, not three. */
   const pricingModule = join(PKG_ROOT, "src", "billing", "pricing.mjs");
+  /* Same rule for the billing-mode table, served at /__plan.mjs: the UI labels its
+     numbers from the same records the proxy classifies with. */
+  const planModule = join(PKG_ROOT, "src", "billing", "plan.mjs");
 
   return {
     pkgRoot: PKG_ROOT,
@@ -62,7 +64,7 @@ export function resolveRuntimePaths(opts = {}) {
     envelopePath,
     irisHtml,
     pricingModule,
-    classicHtml,
+    planModule,
     guideHtml,
     irisPaths,
   };

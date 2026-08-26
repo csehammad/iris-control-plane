@@ -2,7 +2,7 @@ import { extractUsage } from "../src/billing/usage.mjs";
 import { rateFor, costOf, serverToolFees } from "../src/billing/pricing.mjs";
 import { cacheWritePremium, avoidedByCache } from "../src/billing/cache.mjs";
 import { monthlyProjection } from "../src/billing/projections.mjs";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join, dirname } from "node:path";
 
@@ -72,15 +72,15 @@ assert(prem > 0, "write premium");
 const avoided = avoidedByCache({ cacheRead: 10000 }, rates);
 assert(avoided > 0, "avoided by cache");
 
-// Single source: pricing.mjs is the only price book. Both UIs import it over
-// /__pricing.mjs rather than declaring their own — three copies is how the
-// cancelled Sonnet 5 step-up and classic.html's retired Opus 4.1 rates survived.
-for (const ui of ["iris", "classic"]) {
-  const html = readFileSync(join(ROOT, "ui", `${ui}.html`), "utf8");
-  assert(/["'\/]__pricing\.mjs/.test(html), `${ui}.html imports the shared price book`);
-  assert(!/\bconst\s+(PRICE_BOOK|PRICING)\s*=/.test(html), `${ui}.html declares no price book of its own`);
-  assert(!/claude-opus-5['"]?\s*,?\s*(label|in)\s*:/.test(html), `${ui}.html holds no model rate rows`);
-}
+// Single source: pricing.mjs is the only price book. The UI imports it over
+// /__pricing.mjs rather than declaring its own — duplicate copies are how the
+// cancelled Sonnet 5 step-up and the retired Opus 4.1 rates survived unnoticed.
+const irisHtml = readFileSync(join(ROOT, "ui", "iris.html"), "utf8");
+assert(/["'\/]__pricing\.mjs/.test(irisHtml), "iris.html imports the shared price book");
+assert(!/\bconst\s+(PRICE_BOOK|PRICING)\s*=/.test(irisHtml), "iris.html declares no price book of its own");
+assert(!/claude-opus-5['"]?\s*,?\s*(label|in)\s*:/.test(irisHtml), "iris.html holds no model rate rows");
+// The second UI that used to carry its own stale book is gone; it must stay gone.
+assert(!existsSync(join(ROOT, "ui", "classic.html")), "no second UI to drift out of date");
 // The server must actually be able to hand that file to the browser.
 assert(
   /url === "\/__pricing\.mjs"/.test(readFileSync(join(ROOT, "src/runtime/server.mjs"), "utf8")),

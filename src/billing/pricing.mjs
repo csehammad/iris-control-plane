@@ -1,11 +1,12 @@
 // Anthropic list prices (USD per 1M tokens) — the single source for the whole tool.
 //
-// Nothing else holds a price. The server imports this module; both browser UIs
-// import it too, served verbatim at /__pricing.mjs (routed in runtime/server.mjs,
+// Nothing else holds a price. The server imports this module; the browser UI
+// imports it too, served verbatim at /__pricing.mjs (routed in runtime/server.mjs,
 // path in runtime/paths.mjs). It previously existed in three copies — here, inline
-// in iris.html, and a substring-matched one in classic.html — and they drifted
+// in iris.html, and a substring-matched one in a second UI — and they drifted
 // exactly as you would expect: a cancelled Sonnet 5 step-up lived on in two of
-// them, and classic.html priced every Opus generation at retired Opus 4.1 rates.
+// them, and the second UI priced every Opus generation at retired Opus 4.1 rates.
+// That second UI has since been deleted; this is the only price book left.
 //
 // `rateFor` takes a `billing` object rather than a model id alone because fast
 // mode, batch and data residency all change the rate card, and a book that ignores

@@ -4,7 +4,8 @@
  */
 
 import { createHash } from "node:crypto";
-import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync, mkdirSync } from "node:fs";
+import { writeJsonAtomic } from "../runtime/atomic.mjs";
 import { dirname, join } from "node:path";
 import { scrub } from "../security/redact.mjs";
 import { fmt } from "../context/schemas.mjs";
@@ -113,17 +114,52 @@ export function createActionLedger({ path, max = 20000 } = {}) {
     return actionLog;
   }
 
+  /**
+   * Adopt anything another writer added since this process last read.
+   *
+   * Same hazard as the spend ledger: two Iris instances can serve one project,
+   * and a whole-file write from memory silently discards the other's actions.
+   * Rows carry a content-hashed key `k`, so the union is well defined.
+   *
+   * @returns {number} rows adopted
+   */
+  function mergeFromDisk() {
+    let j;
+    try {
+      j = JSON.parse(readFileSync(path, "utf8"));
+    } catch {
+      // FALLBACK-GUARD: INTENTIONAL — no file yet; this process's log stands
+      return 0;
+    }
+    const rows = Array.isArray(j?.actions) ? j.actions : [];
+    let adopted = 0;
+    for (const a of rows) {
+      if (!a || !a.k || actionKeys.has(a.k)) continue;
+      actionKeys.add(a.k);
+      actionLog.push(a);
+      adopted++;
+    }
+    if (adopted) {
+      /* Keep chronological order so the FIFO cap evicts the oldest, not whatever
+         happened to be merged last. */
+      actionLog.sort((x, y) => String(x.t || "").localeCompare(String(y.t || "")) || (x.i - y.i));
+      if (actionLog.length > max) {
+        const drop = actionLog.splice(0, actionLog.length - max);
+        for (const d of drop) actionKeys.delete(d.k);
+      }
+    }
+    return adopted;
+  }
+
   function save() {
     try {
       mkdirSync(dirname(path), { recursive: true });
-      writeFileSync(
-        path,
-        JSON.stringify({
-          savedAt: new Date().toISOString(),
-          backfilled: actionsBackfilled,
-          actions: actionLog,
-        })
-      );
+      mergeFromDisk();
+      writeJsonAtomic(path, {
+        savedAt: new Date().toISOString(),
+        backfilled: actionsBackfilled,
+        actions: actionLog,
+      });
       actionsDirty = 0;
     } catch (e) {
       console.error("  ! could not persist action log:", e.message);
@@ -203,6 +239,7 @@ export function createActionLedger({ path, max = 20000 } = {}) {
     },
     load,
     save,
+    mergeFromDisk,
     recordActions,
     backfillActions,
     getActions,

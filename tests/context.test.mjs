@@ -1,7 +1,7 @@
 import { attributeToolResults, rankToolResults, remediationAdvice } from "../src/context/tool-results.mjs";
 import { contextDiff } from "../src/context/diff.mjs";
 import { simulateTrim } from "../src/context/trim.mjs";
-import { calibrate, applyCalibration } from "../src/context/calibration.mjs";
+import { calibrate, applyCalibration, sessionFactor } from "../src/context/calibration.mjs";
 import { rankTools, estTokens } from "../src/context/schemas.mjs";
 import { buildTimeline } from "../src/forensic/timeline.mjs";
 import { correlate } from "../src/forensic/correlation.mjs";
@@ -65,6 +65,41 @@ assert(trim.removable.some((r) => r.name === "B"), "trim unused");
 const factor = calibrate(1000, 800);
 assert(factor === 0.8, "calibrate");
 assert(applyCalibration(1000, factor) === 800, "applyCalibration");
+
+// The panels that used to ship raw chars/4 carry their sizes in arrays and in
+// aggregate fields; calibration has to reach all of them, not just the traffic view.
+const scaled = applyCalibration(
+  {
+    deltaTokens: 100,
+    totalTokens: 200,
+    parts: [{ kind: "system", tokens: 10 }, { kind: "tools", tokens: 20 }],
+    results: [{ toolName: "Read", tokens: 40 }],
+    rows: [{ name: "T", tokens: 8 }],
+  },
+  1.5
+);
+assert(scaled.deltaTokens === 150 && scaled.totalTokens === 300, "aggregate fields scale");
+assert(scaled.parts[0].tokens === 15 && scaled.parts[1].tokens === 30, "context-diff parts scale");
+assert(scaled.results[0].tokens === 60, "tool_result attributions scale");
+assert(scaled.rows[0].tokens === 12, "tool rows still scale");
+assert(scaled.calUsed === 1.5, "factor is reported alongside the numbers");
+assert(scaled.parts[0].kind === "system", "non-numeric fields survive untouched");
+
+// sessionFactor: median of measured/estimated over recent records.
+const recs = [
+  { estSys: 100, estTools: 100, estMsg: 100, in: 300, cr: 0, cw: 0 }, // 1.0
+  { estSys: 100, estTools: 100, estMsg: 100, in: 600, cr: 0, cw: 0 }, // 2.0
+  { estSys: 100, estTools: 100, estMsg: 100, in: 450, cr: 0, cw: 0 }, // 1.5
+];
+assert(sessionFactor(recs) === 1.5, "median ratio");
+// cache reads and writes are input too, so they belong in the measured side
+assert(sessionFactor([{ estSys: 50, estTools: 50, estMsg: 0, in: 50, cr: 100, cw: 50 }]) === 2, "cr+cw counted");
+assert(sessionFactor([]) === null, "no records -> null, never a made-up factor");
+assert(sessionFactor([{ estSys: 0, estTools: 0, estMsg: 0, in: 100 }]) === null, "zero estimate skipped");
+assert(sessionFactor(null) === null, "non-array -> null");
+// one absurd outlier must not drag the panel
+const withOutlier = [...recs, { estSys: 1, estTools: 0, estMsg: 0, in: 9999, cr: 0, cw: 0 }];
+assert(sessionFactor(withOutlier) < 2, "median resists an outlier");
 
 assert(rankTools({ tools: [{ name: "T", input_schema: { type: "object" } }] }).total > 0, "rankTools");
 assert(estTokens("abcd") === 1, "estTokens");

@@ -71,6 +71,71 @@ kbd{font-family:var(--mono);font-size:11.5px;padding:2px 5px;border:1px solid va
 .btn.pri:disabled{opacity:.4;cursor:not-allowed}
 .btn .cnt{font-family:var(--mono);font-size:11px;background:rgba(255,255,255,.22);padding:1px 5px;border-radius:5px}
 
+/* ── billing mode chip + help ───────────────────
+   The chip is a control, not a badge: what it says changes how every number on
+   the dashboard is labelled, so it has to look pressable and sit next to them. */
+.plan{display:flex;align-items:center;gap:7px;height:32px;padding:0 9px 0 10px;border:1px solid var(--line2);
+  border-radius:8px;background:var(--well);font-size:13px;font-weight:600;color:var(--ink2);white-space:nowrap}
+.plan:hover{border-color:var(--ink3)}
+.plan i{width:7px;height:7px;border-radius:99px;background:var(--wire);flex:none}
+.plan.guess i{background:var(--amber)}
+.plan.manual i{background:var(--violet)}
+.helpb{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid var(--line2);
+  border-radius:8px;background:var(--well);color:var(--ink2);font-weight:700;font-size:14px;flex:none}
+.helpb:hover{border-color:var(--ink3);color:var(--ink)}
+/* Popover for the mode picker — anchored under the chip, closed on any outside click. */
+.pop{position:fixed;z-index:110;display:none;width:min(392px,94vw);background:#fff;border:1px solid var(--line2);
+  border-radius:12px;box-shadow:var(--sh-3);overflow:hidden}
+.pop.on{display:block}
+.pop-h{padding:12px 14px 9px;border-bottom:1px solid var(--line)}
+.pop-t{font-weight:700;font-size:13.5px}
+.pop-s{font-size:12px;color:var(--ink3);margin-top:2px;line-height:1.45}
+.pop-opt{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;padding:10px 14px;
+  border-bottom:1px solid var(--line);transition:.12s}
+.pop-opt:last-child{border-bottom:0}
+.pop-opt:hover{background:var(--well)}
+.pop-opt[aria-selected="true"]{background:var(--wire-soft)}
+.pop-opt .rad{width:15px;height:15px;border-radius:99px;border:1.6px solid var(--line2);flex:none;margin-top:2px;position:relative}
+.pop-opt[aria-selected="true"] .rad{border-color:var(--wire)}
+.pop-opt[aria-selected="true"] .rad::after{content:"";position:absolute;inset:3px;border-radius:99px;background:var(--wire)}
+.pop-opt b{font-size:13px;display:block}
+.pop-opt span{font-size:11.5px;color:var(--ink3);display:block;margin-top:1px;line-height:1.45}
+.pop-f{padding:9px 14px;background:var(--well);font-size:11.5px;color:var(--ink3);line-height:1.5}
+
+/* ── help sheet ─────────────────────────────────
+   Wider than cmdk and scrollable: it carries prose, a table and a worked example. */
+.sheet{position:fixed;inset:0;z-index:120;display:none;padding:6vh 16px;justify-content:center;
+  background:rgba(19,24,38,.34);backdrop-filter:blur(3px);overflow-y:auto}
+.sheet.on{display:flex;align-items:flex-start}
+.sheet-box{width:min(760px,100%);background:#fff;border-radius:16px;box-shadow:var(--sh-3);overflow:hidden;
+  margin-bottom:6vh}
+.sheet-h{display:flex;align-items:flex-start;gap:12px;padding:20px 24px 16px;border-bottom:1px solid var(--line)}
+.sheet-h h2{font-size:19px;letter-spacing:-.02em}
+.sheet-h p{font-size:13px;color:var(--ink2);margin-top:4px;line-height:1.5;max-width:64ch}
+.sheet-x{margin-left:auto;width:30px;height:30px;border-radius:8px;border:1px solid var(--line2);color:var(--ink2);
+  display:flex;align-items:center;justify-content:center;flex:none;font-size:15px}
+.sheet-x:hover{background:var(--well);color:var(--ink)}
+.sheet-b{padding:18px 24px 24px}
+.sheet-b h3{font-size:13px;font-weight:700;margin:22px 0 8px;letter-spacing:.01em}
+.sheet-b h3:first-child{margin-top:0}
+.sheet-b p{font-size:13.5px;line-height:1.62;color:var(--ink2);margin-bottom:9px;max-width:70ch}
+.sheet-b p b,.sheet-b li b{color:var(--ink)}
+.sheet-b ul{margin:0 0 10px;padding-left:0;list-style:none}
+.sheet-b li{font-size:13.5px;line-height:1.6;color:var(--ink2);padding-left:16px;position:relative;margin-bottom:6px}
+.sheet-b li::before{content:"";position:absolute;left:3px;top:8px;width:4px;height:4px;border-radius:99px;background:var(--line2)}
+.step{display:flex;gap:11px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line)}
+.step:last-child{border-bottom:0}
+.step .n{width:21px;height:21px;border-radius:99px;background:var(--ink);color:#fff;font-size:11px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;flex:none;margin-top:1px;font-family:var(--mono)}
+.step div{font-size:13px;line-height:1.55;color:var(--ink2)}
+.step div b{display:block;color:var(--ink);font-size:13px;margin-bottom:1px}
+.note{background:var(--well);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:10px 0}
+.note.warn{background:var(--amber-soft);border-color:#F3DFC2}
+.note p:last-child{margin-bottom:0}
+
+/* A bracketed cross-plan figure. Muted so it reads as context, not as the answer. */
+.brk{color:var(--ink3);font-weight:500}
+
 /* ── shell ──────────────────────────────────── */
 .shell{position:fixed;inset:var(--top) 0 0 0;display:flex}
 .rail{width:var(--rail);flex:none;background:#fff;border-right:1px solid var(--line);
@@ -397,6 +462,11 @@ h1{font-size:28px;font-weight:700;letter-spacing:-.03em;line-height:1.15}
     <button type="button" role="tab" aria-selected="false" data-w="all">All</button>
   </div>
   <div class="spacer"></div>
+  <button class="plan" id="planBtn" title="How this traffic is billed — changes how every figure here is labelled">
+    <i id="planDot"></i><span id="planLabel">detecting…</span>
+    <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M3 4.5 6 8l3-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  <button class="helpb" id="openHelp" title="How Claude Code pricing works, and how Iris reads it" aria-label="Help">?</button>
   <button class="ksearch" id="openK">
     <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.6" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5 14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
     <span>Search calls, tools, actions</span><kbd>⌘K</kbd>
@@ -458,6 +528,9 @@ h1{font-size:28px;font-weight:700;letter-spacing:-.03em;line-height:1.15}
   <div class="dbody" id="dBody"></div>
 </aside>
 
+<div class="pop" id="planPop" role="dialog" aria-label="Billing mode"></div>
+<div class="sheet" id="help" role="dialog" aria-modal="true" aria-label="How pricing works"></div>
+
 <div class="cmdk" id="cmdk">
   <div class="cmdk-box">
     <input id="cmdkIn" placeholder="Jump to a view, call, tool, or action…" autocomplete="off" spellcheck="false">
@@ -488,10 +561,30 @@ const DATA={
 /* Time-windowed calls (live capture + spend ledger). Filled in recalc(). */
 const VW=[];
 const LIVE={
-  connected:false, port:null, upstream:null, settingsPath:null,
+  connected:false, port:null, upstream:null, settingsPath:null, wiring:null,
   denySet:new Set(), docTok:{}, wireDesc:{}, seen:0, skipped:0, lastEventAt:null,
   authRequired:false,
 };
+/* ── Fleet ──────────────────────────────────────────────────────────────────
+   Nobody is billed per repo. One Iris serves one project, but every project's
+   ledger is on disk at a path the registry knows, so a fleet total is a read
+   rather than a coordination problem — no IPC, and each running instance
+   computes the same number. Loaded on demand: most sessions never ask for it. */
+const FLEET={ loaded:false, loading:false, on:false, projects:[], records:[], totals:null, err:null };
+function loadFleet(){
+  if(FLEET.loading) return;
+  FLEET.loading=true; render();
+  fetch('/__projects').then(r=>r.json()).then(d=>{
+    /* Already priced, by the same price book this page imports — the server reads
+       src/billing/pricing.mjs, so a fleet figure cannot drift from a local one.
+       Rows are deliberately not shipped: the view renders one line per project,
+       and a machine with several long-lived projects holds tens of thousands. */
+    FLEET.projects=d.projects||[]; FLEET.totals=d.totals||null; FLEET.err=null;
+    FLEET.loaded=true;
+  }).catch(e=>{ FLEET.err=String(e.message||e); })
+    .then(()=>{ FLEET.loading=false; render(); });
+}
+
 const GUARD={ env:null, proposal:null, decisions:[], signals:[], stats:{allow:0,ask:0,deny:0} };
 function refreshGuard(){
   return fetch('/__authority').then(r=>r.json()).then(d=>{
@@ -513,122 +606,97 @@ function refreshGuard(){
 }
 
 /* ── Price book ─────────────────────────────────────────────────────────────
-   Anthropic list prices, USD per 1M tokens. Verified 2026-07-27 against
-   platform.claude.com/docs/en/docs/about-claude/pricing
+   Not defined here. The prices, the rate modifiers (fast mode, batch, data
+   residency, long context) and the server-tool fees all live in one file —
+   src/billing/pricing.mjs — which the server hands to this page verbatim at
+   /__pricing.mjs. boot() imports it and fills the bindings below.
 
-     in  base input        cr   cache hit / refresh  (0.1x input)
-     cw5 5-minute write    (1.25x input)
-     cw1 1-hour write      (2x input)   ← Claude Code uses this TTL, and it is
-     out output                           NOT the same price as a 5m write
+   This page used to carry its own copy of the book, and so did a second, lighter
+   UI. Three copies meant three chances to miss a price change, and they did drift:
+   the cancelled Sonnet 5 step-up survived in two of them, and the second UI was
+   still pricing every Opus generation at retired Opus 4.1 rates — which went
+   unnoticed because nothing linked to it. That UI is gone. One source, imported.
 
-   Matched longest-id-first against the model on the wire, so a new generation can
-   never silently inherit the previous one's prices — an unknown id is reported as
-   unpriced instead of being guessed at. Long context needs no tier: Claude 4.6 and
-   later bill the full 1M window at standard rates. */
-const PRICE_BOOK=[
-  {id:'claude-fable-5',    label:'Fable 5',    in:10,  cw5:12.50, cw1:20,   cr:1,    out:50},
-  {id:'claude-mythos-5',   label:'Mythos 5',   in:10,  cw5:12.50, cw1:20,   cr:1,    out:50},
-  {id:'claude-opus-5',     label:'Opus 5',     in:5,   cw5:6.25,  cw1:10,   cr:0.50, out:25},
-  {id:'claude-opus-4-8',   label:'Opus 4.8',   in:5,   cw5:6.25,  cw1:10,   cr:0.50, out:25},
-  {id:'claude-opus-4-7',   label:'Opus 4.7',   in:5,   cw5:6.25,  cw1:10,   cr:0.50, out:25},
-  {id:'claude-opus-4-6',   label:'Opus 4.6',   in:5,   cw5:6.25,  cw1:10,   cr:0.50, out:25},
-  {id:'claude-opus-4-5',   label:'Opus 4.5',   in:5,   cw5:6.25,  cw1:10,   cr:0.50, out:25},
-  {id:'claude-opus-4-1',   label:'Opus 4.1',   in:15,  cw5:18.75, cw1:30,   cr:1.50, out:75},
-  {id:'claude-opus-4',     label:'Opus 4',     in:15,  cw5:18.75, cw1:30,   cr:1.50, out:75},
-  /* Sonnet 5 launched at $2/$10 as introductory pricing through 2026-08-31. Anthropic
-     has since cancelled the scheduled step-up to $3/$15 — "the previously scheduled
-     increase ... on September 1, 2026 will not occur" — so $2/$10 is the standard
-     price and this row carries no `until`/`after`. */
-  {id:'claude-sonnet-5',   label:'Sonnet 5',   in:2,   cw5:2.50,  cw1:4,    cr:0.20, out:10},
-  {id:'claude-sonnet-4-6', label:'Sonnet 4.6', in:3,   cw5:3.75,  cw1:6,    cr:0.30, out:15},
-  {id:'claude-sonnet-4-5', label:'Sonnet 4.5', in:3,   cw5:3.75,  cw1:6,    cr:0.30, out:15},
-  {id:'claude-sonnet-4',   label:'Sonnet 4',   in:3,   cw5:3.75,  cw1:6,    cr:0.30, out:15},
-  {id:'claude-haiku-4-5',  label:'Haiku 4.5',  in:1,   cw5:1.25,  cw1:2,    cr:0.10, out:5},
-  {id:'claude-haiku-3-5',  label:'Haiku 3.5',  in:0.80,cw5:1,     cw1:1.60, cr:0.08, out:4},
-].sort((a,b)=>b.id.length-a.id.length);
+   rateFor() returns each price under both namings — r.in/r.cw5/r.cw1/r.cr/r.out
+   as rendered here, and input/cw5m/cw1h/cacheRead/output as the module's own API. */
+let PRICE_BOOK, FAST_MODE, CACHE_MULT, LONG_CTX_THRESHOLD,
+    SERVER_TOOL_RATES, SERVER_TOOL_UNPRICED, rateFor, serverToolFees;
 
-/* Fast mode (research preview) replaces the base rates on Opus 5 / 4.8; the cache
-   multipliers then apply on top of the fast base, not the standard one. */
-const FAST_MODE={'claude-opus-5':{in:10,out:50},'claude-opus-4-8':{in:10,out:50}};
-const CACHE_MULT={cw5:1.25, cw1:2, cr:0.1};
+/* ── Billing mode ───────────────────────────────────────────────────────────
+   The same traffic means four different things depending on how it is paid for,
+   and every headline figure on this page is affected. Imported from the module
+   the proxy classifies with — src/billing/plan.mjs at /__plan.mjs — for the same
+   reason the price book is: one definition, not a copy that drifts. */
+let PLAN_MODES, PLAN_BY_ID, planFor;
 
-/* ── Long context ───────────────────────────────────────────────────────────
-   Kept as a mechanism with nothing in it, deliberately. Every model in the book
-   above that has a 1M-token window (Opus 5/4.8/4.7/4.6, Sonnet 5, Sonnet 4.6,
-   Fable 5, Mythos 5) bills the full window at standard rates — the docs are
-   explicit: "long-context requests are billed at standard pricing", and 1M is the
-   default with no beta header needed. The remaining models have a 200k window, so
-   they can't exceed the threshold in the first place.
-
-   106 of the calls in this workspace's logs exceed 200k input tokens and are all
-   correctly billed at standard rates. If a premium tier is ever reintroduced, add
-   `longCtx:{over:200000, in:…, cw5:…, cw1:…, cr:…, out:…}` to that model's row and
-   the arithmetic below picks it up — rather than someone having to notice. No rates
-   are invented here: an absent tier means the published price has none. */
-const LONG_CTX_THRESHOLD=200000;
-
-/* ── Server-side tools ──────────────────────────────────────────────────────
-   Billed on top of tokens, reported in usage.server_tool_use. Web fetch is free.
-   Code execution bills by container-time (with 1,550 free hours/month), which the
-   request count alone cannot price — so it is surfaced, never guessed at. */
-const SERVER_TOOL_RATES={
-  web_search_requests:{usd:0.01, label:'Web search', note:'$10 per 1,000 searches'},
-  web_fetch_requests: {usd:0,    label:'Web fetch',  note:'no additional charge'},
-};
-const SERVER_TOOL_UNPRICED={
-  code_execution_requests:{label:'Code execution',note:'billed by container-hour, not per request'},
-};
-/* Returns {usd, lines:[{label,count,usd,note}], unpriced:[…]} for one call. */
-function serverToolFees(st){
-  const out={usd:0,lines:[],unpriced:[]};
-  if(!st||typeof st!=='object') return out;
-  for(const [key,n] of Object.entries(st)){
-    if(!n) continue;
-    const r=SERVER_TOOL_RATES[key];
-    if(r){ const usd=n*r.usd; out.usd+=usd; out.lines.push({label:r.label,count:n,usd,note:r.note}); continue; }
-    const u=SERVER_TOOL_UNPRICED[key];
-    out.unpriced.push({label:u?u.label:key,count:n,note:u?u.note:'no published per-request rate'});
-  }
-  return out;
+/* Resolved once, before the first render. Everything that prices a call runs inside
+   recalc()/render(), which boot() only reaches after this settles. */
+async function loadPricing(){
+  const [m, p] = await Promise.all([import('/__pricing.mjs'), import('/__plan.mjs')]);
+  ({PRICE_BOOK, FAST_MODE, CACHE_MULT, LONG_CTX_THRESHOLD,
+    SERVER_TOOL_RATES, SERVER_TOOL_UNPRICED, rateFor, serverToolFees} = m);
+  ({PLAN_MODES, PLAN_BY_ID, planFor} = p);
 }
 
-/* `billing` merges what the request asked for and what the response says was applied:
-   {speed, inferenceGeo, batch, serviceTier}. `inputTokens` selects the long-context
-   tier where a model has one. */
-function rateFor(model,billing,inputTokens){
-  if(!model) return null;
-  /* strip a beta/context suffix ("claude-opus-5[1m]") and any dated snapshot */
-  const id=String(model).toLowerCase().replace(/\[.*$/,'');
-  const hit=PRICE_BOOK.find(r=>id.startsWith(r.id));
-  if(!hit) return null;
-  let r={tier:hit.label,in:hit.in,cw5:hit.cw5,cw1:hit.cw1,cr:hit.cr,out:hit.out,note:null,
-         longCtx:false, unknownTier:null};
-  const add=n=>{ r.note=(r.note?r.note+' · ':'')+n; };
-  /* Dated price change: no row uses this today, kept so a future step-up is one
-     `until`/`after` pair rather than a code change. */
-  if(hit.until&&Date.now()>=Date.parse(hit.until)) Object.assign(r,hit.after);
-
-  const b=billing||{};
-  /* long context: only applies where the published price defines a tier */
-  if(hit.longCtx&&inputTokens>(hit.longCtx.over??LONG_CTX_THRESHOLD)){
-    Object.assign(r,hit.longCtx); r.longCtx=true; add('long context >'+k(hit.longCtx.over??LONG_CTX_THRESHOLD));
-  }
-  const fast=b.speed==='fast'&&FAST_MODE[hit.id];
-  if(fast){
-    r.in=fast.in; r.out=fast.out;
-    r.cw5=r.in*CACHE_MULT.cw5; r.cw1=r.in*CACHE_MULT.cw1; r.cr=r.in*CACHE_MULT.cr;
-    add('fast mode');
-  }
-  if(b.batch){ for(const key of ['in','cw5','cw1','cr','out']) r[key]*=0.5; add('batch −50%'); }
-  if(b.inferenceGeo==='us'){ for(const key of ['in','cw5','cw1','cr','out']) r[key]*=1.1; add('us residency ×1.1'); }
-  /* Anything other than the standard service tier may carry rates we don't hold.
-     Surface it instead of quietly applying standard prices to a priority request. */
-  if(b.serviceTier&&b.serviceTier!=='standard'&&b.serviceTier!=='not_available'){
-    r.unknownTier=b.serviceTier; add('service tier: '+b.serviceTier+' (rates unverified)');
-  }
-  return r;
+/* What the proxy saw on the wire, and what the user has since told us instead.
+   The credential proves a seat but cannot prove whether that seat is still inside
+   its allowance or already drawing usage credits — nothing on the wire says so —
+   so the override is a first-class input, not a debug escape hatch. */
+const PLAN={ detected:null, override:null };
+function planLoad(){
+  try{ const v=localStorage.getItem('iris.plan'); PLAN.override=v||null; }catch(e){}
 }
+function planSave(){
+  try{ PLAN.override?localStorage.setItem('iris.plan',PLAN.override):localStorage.removeItem('iris.plan'); }catch(e){}
+}
+planLoad();
+/* The effective mode: the user's choice if they made one, else what was detected,
+   else the subscription default — most Claude Code installs are signed-in seats. */
+const planId=()=>PLAN.override||PLAN.detected?.mode||'subscription';
+const plan=()=>(planFor?planFor(planId()):{id:planId(),label:'Subscription seat',unit:'plan',
+  moneyIsReal:false,priceBookApplies:true,cacheTtlMin:60,meter:'',short:'',why:''});
+const planAuto=()=>!PLAN.override;
+/* Dollars are the literal bill only on a key or on credits. */
+const moneyReal=()=>!!plan().moneyIsReal;
+const priced=()=>plan().priceBookApplies!==false;
 
+/* ── Figures, labelled for the mode ─────────────────────────────────────────
+   money()  — the dollar figure when it is the bill, else nothing.
+   asIf()   — the same figure in brackets when it is a cross-plan projection.
+   dual()   — the pair, in whichever order the mode makes primary.
+   On a cloud provider the price book is the wrong rate card, so no dollar figure
+   is offered at all: withholding it is the honest output, a guess is not. */
+const money=n=>priced()?usd(n):'—';
+const asIf=n=>priced()?`<span class="brk">(${usd(n)}/mo on API rates)</span>`:'';
+/* What share of this window's measured spend a recurring per-turn block accounts
+   for. Numerator and denominator both come from the capture, so it needs no
+   published quota — and because a seat allowance meters weighted tokens, the share
+   of spend a trim reclaims is the share of the allowance it reclaims. */
+const shareOfSpend=t=>T.cost?Math.min(100,(t*RATE_IN()*T.calls)/T.cost*100):0;
+const pctS=n=>n>=10?n.toFixed(0)+'%':n>=1?n.toFixed(1)+'%':n>0?'<1%':'—';
+
+/* One recurring per-turn token block, expressed the way this mode actually meters
+   it. The dollar figure leads only where dollars are the bill; on a seat it drops
+   into brackets as the cross-plan projection it really is, and on a cloud provider
+   it is withheld rather than priced off a rate card that does not apply. */
+const sub=t=>`<span style="font-size:15px;color:var(--ink3)">${t}</span>`;
+function recur(tok){
+  const p=project(tok);
+  if(!priced()) return {val:k(tok)+sub('/turn'), foot:'partner rates — token counts only', money:''};
+  if(moneyReal()) return {val:usd(p.perMonth)+sub('/mo'), foot:`${k(tok)} tok every turn`, money:usd(p.perMonth)};
+  return {val:k(tok)+sub('/turn'),
+          foot:`${pctS(shareOfSpend(tok))} of metered usage · ${usd(p.perMonth)}/mo on API rates`,
+          money:usd(p.perMonth)};
+}
+/* A saving, phrased for the mode: money where money is real, reclaimed allowance
+   share where it is not, and the other reading in brackets either way. */
+function saving(tok){
+  if(!tok) return '';
+  const m=usd(project(tok).perMonth);
+  if(!priced()) return `${k(tok)} tok every turn`;
+  return moneyReal() ? `${m} a month`
+    : `${pctS(shareOfSpend(tok))} of every turn <span class="brk">(${m}/mo on API rates)</span>`;
+}
 /* Total input tokens on a call — the figure the long-context tier is keyed on. */
 const inTok=c=>(c.in||0)+(c.cr||0)+(c.cw||0);
 /* The rate card that actually applied to this specific call. */
@@ -1237,8 +1305,11 @@ const projBasis=()=>
     ? `measured ${turnsPerHour().toFixed(0)} turns/hour across ${hrs(T.activeHours)} of active work`
       +`${T.idleHours>0.05?` (${hrs(T.idleHours)} of idle time excluded from ${hrs(T.spanHours)} elapsed)`:''}`
     : `assumed ${PROJ_DEFAULTS.fallbackTurnsPerHour} turns/hour — not enough active time captured to measure`}`
-  +` × ${S.proj.hoursPerDay} h/day × ${S.proj.daysPerMonth} days = ${fmt(turnsPerMonth())} turns/month,`
-  +` priced at the measured ${mtok(RATE_IN()*1e6)} you actually paid for input`;
+  +` × ${S.proj.hoursPerDay} h/day × ${S.proj.daysPerMonth} days = ${fmt(turnsPerMonth())} turns/month`
+  /* The measured rate comes out of pricing.mjs, so quoting it on a partner-billed
+     upstream would contradict the card above, which has just said that book does
+     not apply. Turn counts are provider-independent; the rate is not. */
+  +`${priced()?`, priced at the measured ${mtok(RATE_IN()*1e6)} you actually paid for input`:''}`;
 /* The write multiplier a given call actually paid, blended if it mixed TTLs. */
 function wMult(c){
   const r=rateOf(c); if(!r||!c.cw) return '1.25';
@@ -1354,10 +1425,15 @@ function vOverview(){
 
   <div class="kpis">
     ${kpi('Context shipped',k(T.shipped),spark(VW.map(x=>x.in+x.cr+x.cw)),`across ${T.calls} calls`,'')}
-    ${kpi('Billed',usd(T.cost),spark(costs,104,34,'#BB332A'),
-      T.unpriced?`${T.calls-T.unpriced} of ${T.calls} calls priced`:`${M.pricing.tier||'—'} list rates${M.pricing.note?' · '+M.pricing.note:''}`,'')}
-    ${kpi('Potential trim',k(TOOLS.filter(t=>isOn(t)&&t.calls===0).reduce((a,t)=>a+t.tokens,0)),spark([TAX(),TAX(),TAX()]),
-      `${TOOLS.filter(t=>isOn(t)&&t.calls===0).length} unused schemas · ${usd(project(TOOLS.filter(t=>isOn(t)&&t.calls===0).reduce((a,t)=>a+t.tokens,0)).perMonth)}/mo projected`,'')}
+    ${kpi(moneyReal()?'Billed':'Metered',priced()?usd(T.cost):k(T.shipped),spark(costs,104,34,'#BB332A'),
+      T.unpriced?`${T.calls-T.unpriced} of ${T.calls} calls priced`
+        :moneyReal()?`${M.pricing.tier||'—'} list rates${M.pricing.note?' · '+M.pricing.note:''}`
+        :priced()?`drawn from your allowance · ${M.pricing.tier||'—'} list rates if billed`
+        :`partner rates — not priced here`,'')}
+    ${(()=>{const dt=TOOLS.filter(t=>isOn(t)&&t.calls===0),tok=dt.reduce((a,t)=>a+t.tokens,0);
+      return kpi('Potential trim',k(tok),spark([TAX(),TAX(),TAX()]),
+        `${dt.length} unused schemas${priced()?` · ${moneyReal()?usd(project(tok).perMonth)+'/mo projected'
+          :pctS(shareOfSpend(tok))+' of usage · '+usd(project(tok).perMonth)+'/mo on API rates'}`:''}`,'')})()}
     ${kpi('Authority',(GUARD.env?.acceptedAt?'active':'open'),'','',GUARD.env?.acceptedAt?`task: ${esc((GUARD.env.task||'').slice(0,40)||'accepted')}`:'accept an envelope in Guard')}
     ${kpi('Guard',`${gAllow}↑ ${gAsk}? ${gDeny}✕`,'',
       GUARD.signals.length?`${GUARD.signals.length} authority signal${GUARD.signals.length>1?'s':''}`:`${esc(win.label)}`,'')}
@@ -1414,11 +1490,23 @@ function kpi(lbl,val,sp,foot,delta){
 function riskFlags(){
   const f=[];
 
+  /* Ahead of every other signal: if the agent is not routed through this proxy,
+     nothing else on the page is current, and no amount of tuning will change that. */
+  const w=LIVE.wiring;
+  if(w&&w.state!=='ok') f.push({sev:'bad',icon:'⇄',
+    title:w.state==='elsewhere'?`Your agent is pointed at port ${w.agentPort}, not ${w.boundPort}`
+      :w.state==='unset'?'Your agent is not routed through Iris'
+      :'Your agent is not pointed at this proxy',
+    body:`${w.state==='unset'
+        ? `No <b class="mono">ANTHROPIC_BASE_URL</b> is set, so Claude Code talks straight to the API.`
+        : `Traffic is going to <b class="mono">${esc(w.url||'—')}</b>.`}
+      Anything shown here is history, not what is happening now.`});
+
   const dead=TOOLS.filter(t=>isOn(t)&&t.tokens>0&&t.calls===0).sort((a,b)=>b.tokens-a.tokens);
   const deadTok=dead.reduce((a,t)=>a+t.tokens,0);
   if(dead.length) f.push({sev:'bad',icon:'◎',title:`${dead.length} tool schema${dead.length>1?'s':''} ship but ${dead.length>1?'were':'was'} never called`,
-    body:`${dead.slice(0,3).map(t=>t.name).join(', ')}${dead.length>3?` +${dead.length-3} more`:''} — ${fmt(deadTok)} tokens re-sent every turn. `
-      +`<b>${usd(project(deadTok).perMonth)}/month</b> of pure overhead at your current pace (${usd(project(deadTok).perTurn)} a turn).`,
+    body:`${dead.slice(0,3).map(t=>t.name).join(', ')}${dead.length>3?` +${dead.length-3} more`:''} — ${fmt(deadTok)} tokens re-sent every turn`
+      +`${priced()?`. <b>${saving(deadTok)}</b> of pure overhead at your current pace.`:', pure overhead at your current pace.'}`,
     act:'tools',actLabel:'Trim'});
 
   const st=Object.entries(T.serverTools||{}).filter(([,n])=>n>0);
@@ -1471,19 +1559,135 @@ function riskFlags(){
 }
 
 /* ═══════════════ VIEW · SPEND (measured, not projected) ═══════════════ */
+/* ── What Iris knows about itself ───────────────────────────────────────────
+   Shown wherever a page has no data. An empty dashboard is only frightening when
+   it is also silent: these four rows say whether the proxy is up, whether the
+   agent is actually pointed at it, how the numbers will be labelled, and where
+   the ledger lives — which between them explain every legitimate empty state. */
+function statusCard(){
+  const w=LIVE.wiring, ok=w&&w.state==='ok';
+  const row=(l,v,tone)=>`<div class="kv"><span>${l}</span><b class="mono"${tone?` style="color:var(--${tone})"`:''}>${v}</b></div>`;
+  return `<div class="card" style="margin-bottom:14px"><div class="cbody">
+    ${row('Proxy',LIVE.connected?`listening on :${esc(String(LIVE.port??'—'))}`:'not connected',LIVE.connected?'jade':'rust')}
+    ${row('Agent points at',esc(w?(w.url||'nothing set'):'checking…'),w?(ok?'jade':'rust'):'')}
+    ${row('Billing mode',esc(plan().label)+(planAuto()?'':' (set by you)'),'')}
+    ${row('Spend ledger',esc(HIST.logDir||'.claude/proxy-logs/'),'')}
+  </div></div>`;
+}
+
+/* A plain list of the measures a page produces once traffic arrives. An empty
+   state that explains what it is for is worth more than one that apologises. */
+function willShow(items){
+  return `<div class="card" style="margin-bottom:14px">
+    <div class="chead"><div class="ctitle">What appears here once a turn lands</div></div>
+    <div class="cbody" style="padding-top:6px">
+      ${items.map(([t,b])=>`<div style="display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--line)">
+        <span style="color:var(--ink3);flex:none;margin-top:2px">·</span>
+        <div><b style="font-size:13px">${t}</b>
+          <div class="small muted" style="margin-top:1px;line-height:1.5">${b}</div></div></div>`).join('')}
+    </div></div>`;
+}
+
 function vSpend(){
   const win=timeWindow();
-  if(!HIST.records.length) return `
+  if(!HIST.records.length){
+    const warn=wiringAlert();
+    return `
     <div class="phead"><div><div class="eyebrow">Measured history</div><h1>Spend</h1>
       <p class="sub">${HIST.building
         ? 'The proxy is indexing its logs — this happens once, then it is cached.'
-        : 'No billable calls in the proxy log yet. Every call this proxy records is added to a ledger here, so spend is measured rather than estimated.'}</p></div></div>`;
+        : warn
+          ? 'Nothing has been recorded, because your agent is not sending its traffic to this proxy. Fix the routing below and every turn after that lands here.'
+          : `Nothing recorded yet. Every call through this proxy is written to a ledger, so what you see here is <b>measured from the usage the API reported</b> — never estimated from token counts.`}</p></div></div>
+    ${warn||''}
+    ${statusCard()}
+    ${HIST.building?'':willShow([
+      ['Cost per day',`Actual billed cost per active day, and the run rate that implies. ${moneyReal()
+        ? 'On '+esc(plan().inline)+' this is what you are charged.'
+        : priced()?'On '+esc(plan().inline)+' this is the API-rate equivalent, not a bill.'
+        :'Token counts only — Iris does not carry your partner\'s rate card.'}`],
+      ['Cache economics',`How much of your input was read from cache at ${crPct()}% of list versus written at a premium — usually the largest single lever on this page.`],
+      ['Cache expiries',`Idle gaps longer than the cache lifetime — <b>${plan().cacheTtlMin>=60?'an hour':'five minutes'}</b> on ${esc(plan().inline)} — that made the next call reprocess your whole context at write price.`],
+      ['Cost by model',`Which model spent what, priced through the rate card that actually applied to each call, including long-context and fast-mode modifiers.`],
+      ['Per active day',`Your figure against the ~$${BENCH.perActiveDay}/developer/active day Anthropic reports across enterprise deployments.`],
+    ])}
+    <p class="small muted" style="max-width:74ch">The ledger is rebuilt from the payload logs on disk, so it survives
+      restarts and outlives any single conversation. <button data-help style="text-decoration:underline;font:inherit;color:var(--wire)">How Iris prices a call</button></p>`;
+  }
 
   if(!HW.records.length) return `
     <div class="phead"><div><div class="eyebrow">Measured history · ${esc(win.label)}</div><h1>Spend</h1>
-      <p class="sub">No billable calls in ${esc(win.label.toLowerCase())}. Iris has ${fmt(HIST.records.length)} in the ledger — pick a wider range in the header.</p></div></div>`;
+      <p class="sub">No billable calls in ${esc(win.label.toLowerCase())}, but Iris has
+        <b>${fmt(HIST.records.length)}</b> in the ledger${HIST.records.length?` going back to
+        <b class="mono">${esc((HIST.records[0].time||'').slice(0,10))}</b>`:''}.</p></div></div>
+    <div class="card"><div class="cbody" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:240px"><div style="font-weight:600;font-size:14px">Widen the range to see them</div>
+        <div class="small muted" style="margin-top:2px">The header range filters every view, not just this one.</div></div>
+      <button class="btn pri" data-setw="all">Show all ${fmt(HIST.records.length)}</button>
+    </div></div>`;
 
   const perActive=HW.activeDays?HW.cost/HW.activeDays:0;
+  /* Fleet totals price every project's rows through this page's own digest, so a
+     cross-project figure is arrived at the same way as the per-project one. */
+  const fleetPanel=(()=>{
+    const F=FLEET;
+    const head=`<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:220px">
+        <div class="ctitle">Across every project on this machine</div>
+        <div class="cnote" style="margin-top:3px">You are billed per account, not per repo${
+          priced()&&!moneyReal()?' — and on '+esc(plan().inline)+' one allowance covers all of them, plus Claude chat':''}.</div>
+      </div>
+      <button class="btn ${F.on?'':'pri'}" id="fleetToggle">${F.on?'Hide':F.loading?'Reading…':'Show fleet total'}</button>
+    </div>`;
+    if(!F.on) return `<div class="card" style="margin-bottom:14px"><div class="cbody">${head}</div></div>`;
+    if(F.err) return `<div class="card" style="margin-bottom:14px"><div class="cbody">${head}
+      <div class="empty" style="margin-top:10px">Could not read the project registry — ${esc(F.err)}</div></div></div>`;
+
+    const d=F.totals||{cost:0,tok:0,calls:0,activeDays:0};
+    const rows=F.projects.filter(p=>p.calls>0)
+      .map(p=>({name:p.name, calls:p.calls, cost:p.cost, tok:p.tok, days:p.activeDays,
+                unpriced:p.unpriced, current:!!p.current, builtAt:p.builtAt}))
+      .sort((a,b)=>(b.cost||0)-(a.cost||0));
+    const stale=F.projects.filter(p=>p.state==='unreadable').length;
+    const missing=F.projects.filter(p=>p.state==='gone').length;
+    const share=c=>d.cost?((c||0)/d.cost*100):0;
+
+    return `<div class="card" style="margin-bottom:14px"><div class="cbody">${head}</div>
+      <div class="tbl-scroll"><table class="tbl">
+        <thead><tr><th>Project</th><th class="r" style="width:80px">Calls</th>
+          <th class="r" style="width:96px">Tokens</th><th class="r" style="width:86px">Days</th>
+          ${priced()?'<th class="r" style="width:104px">Cost</th><th class="r" style="width:78px">Share</th>':'<th class="r" style="width:78px">Share</th>'}
+          <th style="width:130px">Last flush</th></tr></thead>
+        <tbody>${rows.map(r=>`<tr${r.current?' style="background:var(--wire-soft)"':''}>
+          <td><b>${esc(r.name)}</b>${r.current?' <span class="tag mono">this one</span>':''}</td>
+          <td class="r mono">${fmt(r.calls)}</td>
+          <td class="r mono">${k(r.tok)}</td>
+          <td class="r mono muted">${r.days}</td>
+          ${priced()?`<td class="r mono" style="font-weight:600">${usd(r.cost)}</td>`:''}
+          <td class="r mono">${share(r.cost).toFixed(0)}%</td>
+          <td class="mono small muted">${r.builtAt?esc(new Date(r.builtAt).toLocaleString()):'—'}</td></tr>`).join('')}
+        </tbody>
+        <tfoot><tr style="background:var(--well);font-weight:600">
+          <td>${rows.length} project${rows.length===1?'':'s'}</td>
+          <td class="r mono">${fmt(d.calls)}</td>
+          <td class="r mono">${k(d.tok)}</td>
+          <td class="r mono" title="Distinct days across the fleet — two projects worked on one day is one day">${d.activeDays}</td>
+          ${priced()?`<td class="r mono">${usd(d.cost)}</td>`:''}
+          <td class="r mono">100%</td><td></td></tr></tfoot>
+      </table></div>
+      <div class="cbody" style="border-top:1px solid var(--line)">
+        <div class="small muted">Read from each project's ledger on disk — no second Iris has to be running.
+          A project flushes its ledger every 20 calls, so one with a live session may be holding unflushed
+          work; the last-flush column is how current each row is.
+          ${F.totals&&F.totals.projects>rows.length?`${F.totals.projects-rows.length} registered project${F.totals.projects-rows.length===1?'':'s'} recorded nothing and ${F.totals.projects-rows.length===1?'is':'are'} omitted. `:''}
+          ${stale?`<b style="color:var(--rust)">${stale} ledger${stale>1?'s':''} could not be read and ${stale>1?'are':'is'} excluded from the total.</b> `:''}
+          ${d.unpriced?`${fmt(d.unpriced)} call${d.unpriced>1?'s':''} used a model with no list price and ${d.unpriced>1?'are':'is'} counted in tokens but not dollars. `:''}
+          Active days is a union, not a sum — two projects worked on one day is one day.
+          ${missing?`${missing} project${missing>1?'s':''} no longer exist${missing>1?'':'s'} on disk. `:''}
+        </div>
+      </div>
+    </div>`;
+  })();
   const days=HW.days;
   const mx=Math.max(0,...days.map(d=>d.cost))||1;
   const ex=HW.expiries, exCost=ex.reduce((a,e)=>a+(e.paid||0),0), exExcess=ex.reduce((a,e)=>a+(e.excess||0),0);
@@ -1495,12 +1699,17 @@ function vSpend(){
   <div class="phead"><div>
     <div class="eyebrow">${esc(win.label)} · ${fmt(HW.records.length)} billable calls · ${HW.activeDays} active day${HW.activeDays===1?'':'s'}</div>
     <h1>Spend</h1>
-    <p class="sub">Every call, priced from the usage the API reported.</p>
+    <p class="sub">Every call, priced from the usage the API reported.
+      ${moneyReal()?'You are on '+esc(plan().inline)+', so these are your actual charges.'
+        :priced()?'You are on '+esc(plan().inline)+', so this is what the traffic would cost on API rates — not a bill.'
+        :'You are on '+esc(plan().inline)+', so these are Anthropic list rates, not your partner\'s.'}
+      <button data-help style="text-decoration:underline;font:inherit;color:var(--wire)">Why</button></p>
   </div></div>
 
   <div class="kpis">
     ${kpi(win.label,usd(HW.cost),spark(sparkDays.map(d=>d.cost),104,34,'#BB332A'),`${fmt(HW.records.length)} calls over ${HW.activeDays} active day${HW.activeDays===1?'':'s'}`,'')}
-    ${kpi('Per active day',usd(perActive),'',`benchmark: Anthropic cites ~$${BENCH.perActiveDay}/dev/active day`,
+    ${kpi('Per active day',usd(perActive),'',
+      `benchmark: Anthropic cites ~$${BENCH.perActiveDay}/dev/active day${moneyReal()?'':' — API-rate comparison'}`,
       perActive?`<span class="delta ${perActive<BENCH.perActiveDay?'dn':'up'}">${(perActive/BENCH.perActiveDay*100).toFixed(0)}% of benchmark</span>`:'')}
     ${kpi('Net cache saving',usd(HW.cacheNet),'',`across ${k(HW.tok)} input tokens`,'')}
     ${kpi('Cache hit',(HW.records.reduce((a,r)=>a+(r.cr||0),0)+HW.records.reduce((a,r)=>a+(r.cw||0),0))
@@ -1508,6 +1717,8 @@ function vSpend(){
       : '—','',`${k(HW.records.reduce((a,r)=>a+(r.cr||0),0))} read · ${k(HW.records.reduce((a,r)=>a+(r.cw||0),0))} written`,'')}
     ${kpi('Output',k(HW.out),'',`${k(days.reduce((a,d)=>a+d.think,0))} thinking tokens`,'')}
   </div>
+
+  ${fleetPanel}
 
   <div class="card" style="margin-bottom:14px">
     <div class="chead"><div><div class="ctitle">Cost per day</div>
@@ -1542,7 +1753,9 @@ function vSpend(){
       <div class="cbody">
         <div class="small muted" style="margin-bottom:10px">Step away for longer than the cache lifetime and the next
           call reprocesses your whole context at write price instead of reading it at ${crPct()}% of input. The lifetime
-          is an hour on a subscription, five minutes on an API key — read here from the TTL each write actually used.</div>
+          is an hour on a subscription seat and five minutes on an API key or once you are drawing usage credits —
+          <b>${plan().cacheTtlMin>=60?'an hour':'five minutes'}</b> on ${esc(plan().inline)}. The rows below read
+          the TTL each write actually used, so they hold whichever you are on.</div>
         <div class="kv"><span>Prefix rebuilds after an idle gap</span><b>${ex.length}</b></div>
         <div class="kv"><span>Tokens rewritten</span><b>${k(ex.reduce((a,e)=>a+e.tok,0))}</b></div>
         <div class="kv"><span>Paid for those writes</span><b style="color:var(--amber)">${usd(exCost)}</b></div>
@@ -1588,7 +1801,9 @@ function vSpend(){
   <p class="small muted" style="max-width:78ch">Indexed from <b class="mono">.claude/proxy-logs/</b>${HIST.builtAt
     ? ` · last built ${new Date(HIST.builtAt).toLocaleString()}`:''}. Prices are Anthropic list rates, so promotional
     pricing, contracted discounts and subscription allowances are not reflected — for authoritative billing see the
-    Claude Console. Calls whose model is not in the price book are excluded rather than counted as free.</p>`;
+    Claude Console. Calls whose model is not in the price book are excluded rather than counted as free.
+    ${moneyReal()?'':`Iris has this session on <b>${esc(plan().inline)}</b>${planAuto()?' (detected)':' (set by you)'};
+      change it in the header if that is wrong.`}</p>`;
 }
 
 const ttlLabel=t=>t>=60?'1 hour':'5 min';
@@ -1825,9 +2040,8 @@ function vTools(){
 
   <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr))">
     ${kpi('Enabled',onT.length+' <span style="font-size:15px;color:var(--ink3)">/ '+TOOLS.length+'</span>','','tools the agent can reach for','')}
-    ${kpi('Shipping now',usd(project(TAX()).perMonth)+'<span style="font-size:15px;color:var(--ink3)">/mo</span>','',
-      `${k(TAX())} tok every turn`,
-      delta?`<span class="delta ${delta<0?'dn':'up'}">${delta<0?'−':'+'}${usd(Math.abs(project(delta).perMonth))}/mo</span>`:'')}
+    ${(()=>{const r=recur(TAX());return kpi('Shipping now',r.val,'',r.foot,
+      delta&&priced()?`<span class="delta ${delta<0?'dn':'up'}">${delta<0?'−':'+'}${usd(Math.abs(project(delta).perMonth))}/mo</span>`:'')})()}
     ${kpi('On but unused',TOOLS.filter(t=>isOn(t)&&t.tokens>0&&!t.calls).length,'','shipped every turn, never called','')}
     ${kpi('Staged',pendCount(),'',pendCount()?'not written yet':'settings.json in sync','')}
   </div>
@@ -1841,23 +2055,36 @@ function vTools(){
       const t=TOOLS.find(x=>x.name===n); if(!t) return a;
       return a+(S.pending[n]===false?t.tokens:-t.tokens);   // off saves, on costs
     },0);
+    /* On a partner-billed upstream the price book is the wrong rate card, so the
+       money columns are dropped entirely rather than filled with figures the card
+       above has just disclaimed. Tokens are exact on every plan, so they stay. */
+    const money$=priced();
     const row=(lbl,tok,col,strong)=>{
-      const p=project(tok);
+      const p=project(tok), sty=c=>col?` style="color:var(--${col})${c||''}"`:(c?` style="${c.slice(1)}"`:'');
       return `<tr${strong?' style="font-weight:700"':''}>
         <td>${lbl}</td>
         <td class="r mono">${tok?k(tok):'—'}</td>
-        <td class="r mono"${col?` style="color:var(--${col})"`:''}>${tok?usd(p.perTurn):'—'}</td>
-        <td class="r mono"${col?` style="color:var(--${col})"`:''}>${tok?usd(p.perDay):'—'}</td>
-        <td class="r mono"${col?` style="color:var(--${col});font-size:15px"`:''}>${tok?usd(p.perMonth):'—'}</td></tr>`;
+        ${money$?`<td class="r mono"${sty()}>${tok?usd(p.perTurn):'—'}</td>
+        <td class="r mono"${sty()}>${tok?usd(p.perDay):'—'}</td>
+        <td class="r mono"${sty(';font-size:15px')}>${tok?usd(p.perMonth):'—'}</td>`:''}
+        ${money$?'':`<td class="r mono"${sty()}>${tok?pctS(shareOfSpend(tok)):'—'}</td>`}</tr>`;
     };
     return `<div class="card" style="margin-bottom:14px">
-      <div class="chead"><div><div class="ctitle">What tool schemas cost you a month</div>
+      <div class="chead"><div><div class="ctitle">${moneyReal()
+          ? 'What tool schemas cost you a month'
+          : priced() ? 'What tool schemas would cost on API rates'
+          : 'What tool schemas ship every turn'}</div>
         <div class="cnote" style="margin-top:3px">Schemas re-ship on every turn, so the only figure that matters is the recurring one.
-          A bare <b class="mono">deny</b> drops the schema from context; a scoped deny may leave it visible.</div></div></div>
+          A bare <b class="mono">deny</b> drops the schema from context; a scoped deny may leave it visible.
+          ${moneyReal()?`You are on <b>${esc(plan().inline)}</b>, so these are your actual charges.`
+            : priced()?`You are on <b>${esc(plan().inline)}</b>, so these dollars are not a bill — they are what this
+              traffic costs the moment you pass your allowance and <b class="mono">/usage-credits</b> starts charging per token.`
+            :`You are on <b>${esc(plan().inline)}</b>, billed at partner rates Iris does not carry, so token counts are the whole story here.`}
+          <button data-help style="text-decoration:underline;font:inherit;color:var(--wire)">How this is worked out</button></div></div></div>
       <div class="tbl-scroll"><table class="tbl">
         <thead><tr><th>Tool schemas</th><th class="r" style="width:90px">Tokens</th>
-          <th class="r" style="width:100px">Per turn</th><th class="r" style="width:100px">Per day</th>
-          <th class="r" style="width:110px">Per month</th></tr></thead>
+          ${money$?`<th class="r" style="width:100px">Per turn</th><th class="r" style="width:100px">Per day</th>
+          <th class="r" style="width:110px">Per month</th>`:`<th class="r" style="width:150px">Share of metered usage</th>`}</tr></thead>
         <tbody>
           ${row('Shipping today',TAX_LIVE(),'',false)}
           ${pendCount()?row(`Staged change (${pendCount()} tool${pendCount()>1?'s':''})`,Math.abs(stagedTok),stagedTok>0?'jade':'rust',false):''}
@@ -1868,10 +2095,10 @@ function vTools(){
       <div class="cbody" style="border-top:1px solid var(--line);display:flex;align-items:center;gap:14px;flex-wrap:wrap">
         <div style="flex:1;min-width:260px">
           <div style="font-weight:700;font-size:15px">${idle.length
-            ? `Trim ${idle.length} unused schema${idle.length>1?'s':''} to save ${usd(project(idleTok).perMonth)} a month`
+            ? `Trim ${idle.length} unused schema${idle.length>1?'s':''} to ${moneyReal()?'save':'reclaim'} ${saving(idleTok)}`
             : `Nothing idle — every schema that ships has been used`}</div>
           <div class="small muted" style="margin-top:3px">${trimmable.length
-            ? `${trimmable.length} of them ${trimmable.length>1?'are':'is'} tagged optional and safe to drop first, worth ${usd(project(trimTok).perMonth)}/month.`
+            ? `${trimmable.length} of them ${trimmable.length>1?'are':'is'} tagged optional and safe to drop first, worth ${saving(trimTok)}.`
             : idle.length?`All of them are core or standard tools — review before trimming.`
             :`Every optional tool that still ships has been reached for.`}</div>
         </div>
@@ -1888,8 +2115,9 @@ function vTools(){
         <span class="tag ${measuredRate()?'ok':'warn'} mono" style="margin-left:auto">${fmt(turnsPerMonth())} turns/mo</span>
       </div>
       <div class="cbody" style="border-top:1px solid var(--line);padding-top:10px">
-        <div class="small muted">${projBasis()}. Cache-resident schemas keep billing until that cache expires, so a
-        published change shows up on the next session rather than the next turn.</div>
+        <div class="small muted">${projBasis()}. Cache-resident schemas keep billing until that cache expires —
+        <b>${plan().cacheTtlMin>=60?'an hour':'five minutes'}</b> on ${esc(plan().inline)} — so a published change
+        shows up ${plan().cacheTtlMin>=60?'on the next session rather than the next turn':'within minutes'}.</div>
       </div>
     </div>`;
   })()}
@@ -1907,18 +2135,21 @@ function vTools(){
   </div>
 
   ${groups.map(g=>{
-    const gOn=g.rows.filter(isOn), gTok=gOn.reduce((a,t)=>a+t.tokens,0);
+    const gOn=g.rows.filter(isOn), gTok=gOn.reduce((a,t)=>a+t.tokens,0), money$=priced();
     return `<div class="card" style="margin-bottom:14px">
       <div class="chead" style="align-items:flex-start">
         <div style="flex:1"><div class="ctitle">${g.t}</div><div class="cnote" style="margin-top:3px;max-width:66ch">${g.s}</div></div>
         <div style="text-align:right;flex:none">
-          <div class="mono" style="font-size:15px;font-weight:600">${usd(project(gTok).perMonth)}<span style="font-size:12px;color:var(--ink3)">/mo</span></div>
-          <div class="cnote">${fmt(gTok)} tok/turn</div>
+          <div class="mono" style="font-size:15px;font-weight:600">${money$
+            ? usd(project(gTok).perMonth)+'<span style="font-size:12px;color:var(--ink3)">/mo</span>'
+            : fmt(gTok)+'<span style="font-size:12px;color:var(--ink3)"> tok/turn</span>'}</div>
+          <div class="cnote">${money$?fmt(gTok)+' tok/turn':pctS(shareOfSpend(gTok))+' of metered usage'}</div>
           <div class="cnote">${gOn.length} of ${g.rows.length} on</div></div>
       </div>
       <div class="tbl-scroll"><table class="tbl">
         <thead><tr><th style="width:60px"></th><th>Tool</th><th class="r" style="width:110px">Schema</th>
-          <th class="r" style="width:86px">Calls</th><th class="r" style="width:118px">Per month</th><th style="width:150px">Status</th></tr></thead>
+          <th class="r" style="width:86px">Calls</th>
+          <th class="r" style="width:118px">${money$?'Per month':'Share'}</th><th style="width:150px">Status</th></tr></thead>
         <tbody>${g.shown.map(t=>{
           const m=meta(t.name), on=isOn(t), pend=S.pending[t.name]!==undefined;
           const locked=m.tier==='core'&&!S.unlockCore;
@@ -1939,14 +2170,15 @@ function vTools(){
             </td>
             <td class="r mono" style="vertical-align:top">${t.tokens?fmt(t.tokens):'<span class="muted">not seen</span>'}</td>
             <td class="r mono ${t.calls?'':'muted'}" style="vertical-align:top">${t.calls||0}</td>
-            <td class="r mono" style="vertical-align:top;color:${on&&t.tokens?'var(--ink)':'var(--ink3)'}">${on&&t.tokens?usd(project(t.tokens).perMonth):'—'}</td>
+            <td class="r mono" style="vertical-align:top;color:${on&&t.tokens?'var(--ink)':'var(--ink3)'}">${on&&t.tokens
+              ?(money$?usd(project(t.tokens).perMonth):pctS(shareOfSpend(t.tokens))):'—'}</td>
             <td style="vertical-align:top">${pend?`<span class="tag warn"><i class="dot-s"></i>staged ${on?'on':'off'}</span>`
                   : on?`<span class="tag ok"><i class="dot-s"></i>shipping</span>`
                       :`<span class="tag"><i class="dot-s"></i>blocked</span>`}</td></tr>`;
         }).join('')}</tbody></table></div></div>`;
   }).join('')}
 
-  <p class="small muted" style="max-width:76ch">Blocked tools go into the <b class="mono">deny</b> list in <b class="mono">.claude/settings.json</b> and take effect on the agent's next session. Schemas sitting inside an already-cached prefix keep billing until that cache expires.<br><br>
+  <p class="small muted" style="max-width:76ch">Blocked tools go into the <b class="mono">deny</b> list in <b class="mono">.claude/settings.json</b> and take effect on the agent's next session. Schemas sitting inside an already-cached prefix keep billing until that cache expires — ${plan().cacheTtlMin>=60?'an hour':'five minutes'} on ${esc(plan().inline)}.<br><br>
   Schema sizes and call counts come from the recorded traffic. The one-line summaries are written by Iris; where the full schema text was captured off the wire you can open it on the row above.</p>`;
 }
 /* ═══════════════ VIEW · GUARD ═══════════════ */
@@ -2233,6 +2465,150 @@ function renderCmd(q=''){
     `<div class="ci" data-i="${i}" data-a="${i===0?1:0}">${esc(c.t)}<span class="hint">${esc(c.h)}</span></div>`).join('')
     :'<div class="empty">Nothing matches. Try a call id, a tool name, or a view.</div>';
 }
+
+/* ═══════════════ billing mode — chip, picker, help ═══════════════ */
+function paintPlan(){
+  const m=plan(), d=PLAN.detected;
+  const el=$('#planBtn'); if(!el) return;
+  /* Three states worth distinguishing: a classification the wire proves, one it can
+     only infer, and one the user set by hand. Colour carries it; the title says it. */
+  el.classList.toggle('manual',!planAuto());
+  el.classList.toggle('guess',planAuto()&&!(d&&d.confident));
+  $('#planLabel').textContent=m.label;
+  el.title=planAuto()
+    ? `Detected from ${d?.source||'no traffic yet'}${d&&!d.confident?' — inferred, click to correct':''}`
+    : `Set by you — click to change back to detected`;
+}
+function planPop(){
+  const cur=planId(), d=PLAN.detected;
+  const box=$('#planPop');
+  box.innerHTML=`
+    <div class="pop-h">
+      <div class="pop-t">How is this traffic billed?</div>
+      <div class="pop-s">${d?.mode
+        ? `Iris read <b>${esc(d.source)}</b> on ${fmt(d.observed||0)} request${d.observed===1?'':'s'}${d.mixed?' (mixed credentials seen)':''}.`
+          +`${d.confident?'':' That proves a signed-in seat but not whether it is still inside its allowance.'}`
+        : 'No credential seen yet — run Claude Code through the proxy and this fills in.'}</div>
+    </div>
+    ${(PLAN_MODES||[]).map(m=>`
+      <button class="pop-opt" data-plan="${m.id}" aria-selected="${cur===m.id}">
+        <span class="rad"></span>
+        <span style="min-width:0"><b>${esc(m.label)} <span style="font-weight:500;color:var(--ink3)">· ${esc(m.short)}</span></b>
+          <span>${esc(m.meter)}</span></span>
+      </button>`).join('')}
+    <div class="pop-f">${planAuto()?'Following detection.':'Overriding detection.'}
+      ${planAuto()?'':'<button id="planAuto" style="text-decoration:underline;font:inherit;color:var(--wire)">Use detected</button>'}
+      · <button id="planHelp" style="text-decoration:underline;font:inherit;color:var(--wire)">How does this work?</button></div>`;
+  const r=$('#planBtn').getBoundingClientRect();
+  box.style.top=(r.bottom+8)+'px';
+  box.style.left=Math.max(8,Math.min(r.left,innerWidth-408))+'px';
+  box.classList.add('on');
+}
+const closePlanPop=()=>$('#planPop').classList.remove('on');
+function setPlan(id){
+  /* Choosing the mode the proxy already detected means "follow detection", not
+     "pin this value" — otherwise a later /login would leave a stale override. */
+  PLAN.override=(id===PLAN.detected?.mode)?null:id;
+  planSave(); paintPlan(); closePlanPop(); render();
+}
+
+/* The help sheet. Everything here is a fact about how Claude Code is metered or
+   about what this specific proxy measured — no worked example uses a made-up
+   number, so a sceptical reader can check every line against their own session. */
+function helpSheet(){
+  const m=plan(), d=PLAN.detected;
+  const idle=TOOLS.filter(t=>isOn(t)&&t.tokens>0&&!t.calls);
+  const idleTok=idle.reduce((a,t)=>a+t.tokens,0);
+  const row=(a,b,c,dd)=>`<tr><td><b>${a}</b><div class="small muted" style="margin-top:1px">${b}</div></td>
+    <td class="r mono" style="white-space:nowrap">${c}</td><td class="small" style="width:34%">${dd}</td></tr>`;
+  return `<div class="sheet-box">
+    <div class="sheet-h">
+      <div><h2>How Claude Code pricing works</h2>
+        <p>Claude Code meters the same tokens four different ways. Which one applies to you decides
+           whether the dollar figures on this dashboard are your bill, a ceiling, or the wrong rate card
+           entirely — so Iris reads it off the wire and labels every number accordingly.</p></div>
+      <button class="sheet-x" id="helpX" aria-label="Close">✕</button>
+    </div>
+    <div class="sheet-b">
+
+      <h3>The four modes</h3>
+      <div class="tbl-scroll"><table class="tbl"><thead><tr>
+        <th>Mode</th><th class="r">Cache life</th><th>What a $ figure here means</th></tr></thead><tbody>
+        ${(PLAN_MODES||[]).map(x=>row(
+          esc(x.label)+(x.id===m.id?' <span class="tag ok" style="margin-left:4px">yours</span>':''),
+          esc(x.meter), x.cacheTtlMin>=60?'1 hour':'5 min',
+          x.priceBookApplies===false?'Not shown — partner rates, not Anthropic list rates'
+            : x.moneyIsReal?'Literally what you are charged'
+            : 'What the same traffic would cost on API rates')).join('')}
+      </tbody></table></div>
+      <p style="margin-top:9px">A subscription seat and usage credits are the same account: credits are what
+         you spend <b>after</b> the seat allowance runs out. That is why the seat row still shows a dollar
+         figure — it is the price of this traffic the moment you cross the line.</p>
+
+      <h3>How Iris works out which one you are on</h3>
+      <div class="step"><span class="n">1</span><div><b>It reads the credential shape, never the credential</b>
+        Every request through the proxy carries an auth header. Iris checks which <i>kind</i> is present and
+        discards it — no token, and no prefix of one, is stored, logged or sent anywhere.</div></div>
+      <div class="step"><span class="n">2</span><div><b><span class="mono">x-api-key</span> → Console API key</b>
+        Set by <span class="mono">ANTHROPIC_API_KEY</span>. Billing is per token to a Console workspace, so
+        every figure here is your actual charge. Conclusive.</div></div>
+      <div class="step"><span class="n">3</span><div><b><span class="mono">Authorization: Bearer</span> → subscription seat</b>
+        What <span class="mono">/login</span> leaves behind on Pro, Max, Team and Enterprise. This proves a
+        signed-in seat but <b>cannot</b> prove whether that seat is still inside its allowance or already
+        drawing on usage credits — nothing on the wire says so. Iris reports the seat and lets you correct it.</div></div>
+      <div class="step"><span class="n">4</span><div><b>Upstream host → cloud provider</b>
+        If Iris is pointed at Bedrock, Vertex or Foundry, billing runs through your cloud account at that
+        partner's rates. Iris does not carry those, so it withholds dollar figures rather than pricing your
+        traffic off the wrong card.</div></div>
+      ${d?.mode?`<div class="note"><p style="margin:0"><b>On this capture:</b> ${esc(d.source)},
+        seen on ${fmt(d.observed||0)} request${d.observed===1?'':'s'}${d.mixed?', mixed with another credential':''}.
+        ${planAuto()?'Iris is following that.':`You have overridden it to <b>${esc(m.label)}</b>.`}</p></div>`
+        :`<div class="note"><p style="margin:0">No credential seen yet. Run <span class="mono">claude</span>
+          through the proxy and this fills in on the first request.</p></div>`}
+
+      <h3>Why the seat still gets a dollar figure</h3>
+      <p>On a Max plan you pay a flat monthly fee, so a "/mo" figure is not a bill. What it is, is the
+         <b>price of the same traffic the moment you pass your allowance</b> — the point where
+         <span class="mono">/usage-credits</span> starts charging you per token at list rates. Below the
+         limit the same waste costs you the scarcer thing instead: allowance, and the working hours it buys.
+         Both readings come off one measurement, so Iris shows the plan-relative figure first and the dollar
+         figure in brackets.</p>
+      <div class="note warn"><p style="margin:0">Anthropic says the same thing about its own numbers: the
+        <span class="mono">/usage</span> session cost is "intended for API users… Max and Pro subscribers have
+        usage included in their subscription, so the session cost figure isn't relevant for billing purposes."</p></div>
+
+      <h3>How the projection is built</h3>
+      <p>Nothing here is a benchmark or an industry average. Every input is measured from
+         <b>your</b> capture except the working pattern, which is a control you set on the Optimize page.</p>
+      <ul>
+        <li><b>Tokens</b> — counted from the tool schemas actually on the wire, per turn.</li>
+        <li><b>Rate</b> — <span class="mono">${mtok(RATE_IN()*1e6)}</span>, the blended input rate this session
+            really paid. Not list price: a schema sits in the cache, so from the second turn it bills at the
+            cache-read rate, about ${crPct()}% of input. Pricing it at list would overstate the tax roughly tenfold.</li>
+        <li><b>Turns</b> — ${measuredRate()?`measured at ${turnsPerHour().toFixed(0)}/hour across ${hrs(T.activeHours)} of active work,
+            with idle gaps over 5 minutes excluded so nights and lunches do not average your pace down`
+            :`not yet measurable — under a minute of active time captured, so ${PROJ_DEFAULTS.fallbackTurnsPerHour}/hour is assumed`}.</li>
+        <li><b>Working pattern</b> — ${S.proj.hoursPerDay} h/day × ${S.proj.daysPerMonth} days, your assumption, editable on Optimize.</li>
+      </ul>
+      ${idleTok?`<p><b>On this capture:</b> ${idle.length} schema${idle.length>1?'s':''} ship on every turn and
+        ${idle.length>1?'were':'was'} never called — ${fmt(idleTok)} tokens a turn, ${pctS(shareOfSpend(idleTok))}
+        of everything you have spent in this window${priced()?`, or ${usd(project(idleTok).perMonth)} a month at the pace above`:''}.</p>`:''}
+
+      <h3>What Iris cannot tell you</h3>
+      <ul>
+        <li><b>How much allowance you have left.</b> Anthropic does not publish seat quotas as token counts and
+            they are not on the wire. Run <span class="mono">/usage</span> in Claude Code for the real bars.
+            Everything plan-relative here is a share of <i>your own measured usage</i>, which needs no quota.</li>
+        <li><b>Whether you are on credits right now.</b> Set it on the chip if you are; it changes the cache
+            lifetime Iris assumes from an hour to five minutes, which makes idle gaps cost more.</li>
+        <li><b>Your real invoice.</b> These are list rates, so promotional pricing, contracted discounts and
+            seat allowances are not reflected. The Claude Console is authoritative.</li>
+      </ul>
+    </div></div>`;
+}
+function openHelp(){ $('#help').innerHTML=helpSheet(); $('#help').classList.add('on'); }
+const closeHelp=()=>$('#help').classList.remove('on');
+
 function openK(){ CMDS=buildCmds(); $('#cmdk').classList.add('on'); $('#cmdkIn').value=''; renderCmd(); $('#cmdkIn').focus(); }
 function closeK(){ $('#cmdk').classList.remove('on'); $('#cmdkIn').blur(); }
 function moveK(d){
@@ -2249,21 +2625,72 @@ const VIEWS={overview:vOverview,spend:vSpend,traffic:vTraffic,context:vContext,t
 function vEmptyWindow(){
   const w=timeWindow();
   const n=HIST.records.length||C.length||ACTS.list.length;
+  const warn=wiringAlert();
   return `<div class="phead"><div>
     <div class="eyebrow">${esc(w.label)}</div>
     <h1>Nothing in this range</h1>
     <p class="sub">${n
       ? `Iris has ${fmt(n)} recorded ${HIST.records.length?'calls':ACTS.list.length?'actions':'rows'} outside ${esc(w.label.toLowerCase())}. Pick a wider range in the header to see dashboard history.`
-      : 'No calls or actions recorded yet. Run Claude Code in this workspace and they will appear here.'}</p></div></div>`;
+      : 'No calls or actions recorded yet. Run Claude Code in this workspace and they will appear here.'}</p></div></div>
+    ${warn||''}`;
 }
+/* ── Is the agent even pointed here? ────────────────────────────────────────
+   An empty capture has two very different causes: the agent is idle, or the
+   agent is busy talking to something else. Iris can tell them apart — it knows
+   the port it bound and the port settings.json names — so it should never render
+   "waiting" over a mismatch and leave the user to guess. Returns null when the
+   wiring is fine, so callers can drop it in without a condition. */
+function wiringAlert(){
+  const w=LIVE.wiring; if(!w||w.state==='ok') return null;
+  const fix=`Set <b class="mono">env.ANTHROPIC_BASE_URL</b> to <b class="mono">http://127.0.0.1:${esc(String(w.boundPort))}</b>`
+    +` in <b class="mono">${esc(w.settingsPath||'.claude/settings.json')}</b>, or restart Iris on port`
+    +` <b class="mono">${esc(String(w.agentPort??'—'))}</b>.`;
+  const M={
+    elsewhere:{t:`Your agent is pointed at port ${w.agentPort}, not ${w.boundPort}`,
+      b:`Claude Code sends every turn to <b class="mono">${esc(w.url||'')}</b>, so this Iris will never see them —`
+        +` it is running and healthy, just not in the path. ${fix}`},
+    unset:{t:'Your agent is not routed through Iris at all',
+      b:`No <b class="mono">ANTHROPIC_BASE_URL</b> is set in <b class="mono">${esc(w.settingsPath||'settings.json')}</b>,`
+        +` so Claude Code talks straight to the Anthropic API and nothing reaches this proxy.`
+        +` Run <b class="mono">npx @zero-drift/iris init --port ${esc(String(w.boundPort))}</b> to wire it up.`},
+    external:{t:'Your agent is pointed at a non-local URL',
+      b:`<b class="mono">ANTHROPIC_BASE_URL</b> is <b class="mono">${esc(w.url||'')}</b> — a gateway or another host,`
+        +` not this machine. Iris left it alone deliberately, but it means no traffic arrives here. ${fix}`},
+    unparseable:{t:'Your agent has an unreadable base URL',
+      b:`<b class="mono">ANTHROPIC_BASE_URL</b> is <b class="mono">${esc(w.url||'')}</b>, which is not a valid URL.`
+        +` Claude Code may be failing outright. ${fix}`},
+    'no-settings':{t:'No Claude Code settings found for this project',
+      b:`Iris could not read <b class="mono">${esc(w.settingsPath||'.claude/settings.json')}</b>, so nothing points here.`
+        +` Run <b class="mono">npx @zero-drift/iris init --port ${esc(String(w.boundPort))}</b> in this workspace.`},
+  }[w.state];
+  if(!M) return null;
+  /* Say when Iris chose not to fix this itself, so the state does not read as a bug. */
+  const why=w.autowire?'':`<div class="small muted" style="margin-top:7px">Iris is running with
+    <b class="mono">IRIS_AUTOWIRE=0</b>, so it did not repoint the file for you.</div>`;
+  return `<div class="risk-row" style="background:var(--amber-soft);border:1px solid #F3DFC2;border-radius:12px;
+      padding:13px 15px;margin-bottom:14px;align-items:flex-start">
+    <div class="ricon" style="background:#fff;color:var(--amber);flex:none">!</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-weight:700;font-size:14px">${M.t}</div>
+      <div class="small" style="margin-top:3px;color:var(--ink2);line-height:1.55">${M.b}</div>${why}</div>
+  </div>`;
+}
+
 function vWaiting(){
+  const warn=wiringAlert();
   return `<div class="phead"><div>
     <div class="eyebrow">${LIVE.connected?'Connected · listening':'Connecting to the proxy'}</div>
-    <h1>Waiting for the agent to talk to the model</h1>
-    <p class="sub">Iris is attached to <b class="mono">${esc(LIVE.upstream||'the Anthropic API')}</b> on port
+    <h1>${warn?'Nothing is reaching this proxy':'Waiting for the agent to talk to the model'}</h1>
+    <p class="sub">${warn
+      ? `Iris is bound to port <b class="mono">${esc(String(LIVE.port??'—'))}</b> and listening, but your agent is
+         configured to send its traffic somewhere else. Until that is fixed, no turn will ever appear here.`
+      : `Iris is attached to <b class="mono">${esc(LIVE.upstream||'the Anthropic API')}</b> on port
       <b class="mono">${esc(String(LIVE.port??'—'))}</b>. Run <b class="mono">claude</b> in this workspace and the
-      first turn will appear here — payload, price and policy. Past spend is already on <b>Spend</b> if the ledger has rows; the header range filters every view.</p></div></div>
+      first turn will appear here — payload, price and policy. Past spend is already on <b>Spend</b> if the ledger has rows; the header range filters every view.`}</p></div></div>
+    ${warn||''}
     <div class="card"><div class="cbody">
+      <div class="kv"><span>Agent points at</span><b class="mono" style="color:var(--${LIVE.wiring&&LIVE.wiring.state!=='ok'?'rust':'jade'})">${esc(LIVE.wiring?.url||'nothing set')}</b></div>
+      <div class="kv"><span>Iris is listening on</span><b class="mono">http://127.0.0.1:${esc(String(LIVE.port??'—'))}</b></div>
       <div class="kv"><span>Proxy</span><b class="mono">${LIVE.connected?'streaming':'not connected'}</b></div>
       <div class="kv"><span>Deny list in settings.json</span><b class="mono">${LIVE.denySet.size} tools</b></div>
       <div class="kv"><span>Schemas captured off the wire</span><b class="mono">${Object.keys(DATA.docs).length}</b></div>
@@ -2355,8 +2782,8 @@ document.addEventListener('click',e=>{
   }
   const filt=e.target.closest('#tfilter button');
   if(filt){ S.tf=filt.dataset.f; return applyTrafficFilter(); }
-  const tw=e.target.closest('#twin button');
-  if(tw){ S.tw=tw.dataset.w; S.tracePage=1; twSave(); recalc(); return render(); }
+  const tw=e.target.closest('#twin button')||e.target.closest('[data-setw]');
+  if(tw){ S.tw=tw.dataset.w||tw.dataset.setw; S.tracePage=1; twSave(); recalc(); return render(); }
   const tt=e.target.closest('#ttool button');
   if(tt){ S.tt=tt.dataset.t; S.tracePage=1; return render(); }
   if(e.target.closest('#traceMore')){ S.tracePage++; return render(); }
@@ -2367,10 +2794,24 @@ document.addEventListener('click',e=>{
   const ci=e.target.closest('.ci'); if(ci){ closeK(); cmdShown[+ci.dataset.i].run(); return; }
   if(e.target.closest('#openK')) return openK();
   if(e.target.id==='cmdk') return closeK();
+  /* Billing mode. The popover is anchored, so any click that is not inside it and
+     not on its own trigger closes it — including clicks on the page behind. */
+  if(e.target.closest('#planBtn')) return $('#planPop').classList.contains('on')?closePlanPop():planPop();
+  const po=e.target.closest('[data-plan]'); if(po) return setPlan(po.dataset.plan);
+  if(e.target.closest('#planAuto')){ PLAN.override=null; planSave(); paintPlan(); closePlanPop(); return render(); }
+  if(e.target.closest('#planHelp')){ closePlanPop(); return openHelp(); }
+  if(!e.target.closest('#planPop')) closePlanPop();
+  if(e.target.closest('#openHelp')||e.target.closest('[data-help]')) return openHelp();
+  if(e.target.closest('#helpX')||e.target.id==='help') return closeHelp();
   if(e.target.closest('#dClose')||e.target.id==='scrim') return closeDrawer();
   if(e.target.closest('#dPrev')) return openCall(S.sel-1);
   if(e.target.closest('#dNext')) return openCall(S.sel+1);
   if(e.target.closest('#publish')) return publish();
+  if(e.target.closest('#fleetToggle')){
+    FLEET.on=!FLEET.on;
+    if(FLEET.on&&!FLEET.loaded) return loadFleet();
+    return render();
+  }
   if(e.target.closest('#btnCtxDiff')) return loadContextDiff();
   if(e.target.closest('#btnToolRes')) return loadToolResults();
   if(e.target.closest('#guardPropose')){
@@ -2392,6 +2833,9 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('keydown',e=>{
   const open=$('#cmdk').classList.contains('on');
+  /* The help sheet sits above everything, so it claims Escape before the drawer. */
+  if($('#help').classList.contains('on')){ if(e.key==='Escape') return closeHelp(); }
+  if($('#planPop').classList.contains('on')&&e.key==='Escape') return closePlanPop();
   if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){ e.preventDefault(); return open?closeK():openK(); }
   if(open){
     if(e.key==='Escape') return closeK();
@@ -2405,9 +2849,11 @@ document.addEventListener('keydown',e=>{
   const dOpen=$('#drawer').classList.contains('on');
   if(dOpen&&e.key==='j') return openCall(S.sel+1);
   if(dOpen&&e.key==='k') return openCall(S.sel-1);
+  if(e.key==='?') return openHelp();
   const map={'1':'overview','2':'spend','3':'traffic','4':'context','5':'tools','6':'guard','7':'trace'};
   if(map[e.key]) return go(map[e.key]);
 });
+addEventListener('resize',()=>{ if($('#planPop').classList.contains('on')) planPop(); });
 $('#cmdkIn').addEventListener('input',e=>renderCmd(e.target.value));
 
 /* Projection assumptions live in the page, persist across reloads, and re-render
@@ -2426,6 +2872,7 @@ document.addEventListener('change',e=>{
    Nothing below invents a number. Iris draws what /__events reports and writes
    what /__config accepts; if the proxy stops, the UI says so. */
 function syncStatus(){
+  paintPlan();
   $('#envLabel').textContent=`${M.repo} · ${LIVE.connected?'recording':'proxy offline'}`;
   $('#pulse').classList.toggle('off',!LIVE.connected);
   const n=C.length, w=timeWindow();
@@ -2503,9 +2950,15 @@ function connect(){
   es.onmessage=ev=>{
     let e; try{ e=JSON.parse(ev.data); }catch(err){ return; }
     LIVE.lastEventAt=Date.now();
-    if(e.kind==='request'){ if(!ingestRequest(e)) return; }
+    if(e.kind==='request'){
+      if(!PLAN.detected?.mode) fetch('/__meta').then(r=>r.json())
+        .then(d=>{ LIVE.wiring=d.wiring||LIVE.wiring;
+          if(d.plan?.mode){ PLAN.detected=d.plan; paintPlan(); } scheduleRender(); }).catch(()=>{});
+      if(!ingestRequest(e)) return;
+    }
     else if(e.kind==='response'){ if(!ingestResponse(e)) return; }
     else if(e.kind==='config'){ applyDeny(e.deny); }   // another tab published
+    else if(e.kind==='reset'){ PLAN.detected=null; paintPlan(); }
     else if(e.kind==='authority'||e.kind==='guard'){ refreshGuard().then(()=>scheduleRender()); return; }
     else return;
     scheduleRender();
@@ -2513,22 +2966,30 @@ function connect(){
 }
 
 async function boot(){
+  /* Prices first: every figure this page renders is priced through rateFor, and
+     nothing may render before the book is in hand. A failure here is fatal to the
+     cost views, so it is surfaced rather than swallowed into silent $0s. */
+  try{ await loadPricing(); }
+  catch(e){ toast('Could not load the price book from /__pricing.mjs — cost figures unavailable',false); throw e; }
   const get=(u,fn)=>fetch(u).then(r=>r.json()).then(fn).catch(()=>{});
   await Promise.all([
     get('/__meta',d=>{
       LIVE.port=d.port; LIVE.upstream=d.upstream; LIVE.settingsPath=d.settingsPath;
       LIVE.authRequired=!!d.authRequired;
+      LIVE.wiring=d.wiring||null;
+      PLAN.detected=d.plan||null;
       M.session=d.session||M.session; M.repo=d.repo||M.repo; M.agent=d.agent||M.agent;
       document.title=`Iris — ${M.repo}`;
       if(authBlocked()) toast('IRIS_UI_TOKEN is required — open /__monitor?iris_token=…',false);
     }),
     get('/__config',d=>applyDeny(d.deny)),
     get('/__tooldocs',d=>{ applyToolDocs(d.tools); LIVE.docsAt=Date.now(); }),
-    get('/__history',d=>{ HIST.records=d.records||[]; HIST.builtAt=d.builtAt; HIST.building=!!d.building; }),
+    get('/__history',d=>{ HIST.records=d.records||[]; HIST.builtAt=d.builtAt; HIST.building=!!d.building;
+      HIST.logDir=d.logDir||null; }),
     get('/__actions',d=>{ mergeActions(d.actions); ACTS.total=d.total||ACTS.list.length; ACTS.loaded=true; }),
     refreshGuard(),
   ]);
-  recalc(); render();
+  recalc(); paintPlan(); render();
   connect();
 }
 boot();

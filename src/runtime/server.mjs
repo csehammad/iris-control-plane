@@ -13,7 +13,11 @@ import { createEventBus } from "./events.mjs";
 import { createSession } from "./sessions.mjs";
 import { resolveRuntimePaths } from "./paths.mjs";
 import { createToolDocsStore } from "../context/schemas.mjs";
+import { createTokenCounter } from "../context/counter.mjs";
+import { applyCalibration, sessionFactor } from "../context/calibration.mjs";
 import { createHistoryLedger } from "../billing/history.mjs";
+import { createPlanDetector } from "../billing/plan.mjs";
+import { fleetSummary } from "../billing/fleet.mjs";
 import { createActionLedger } from "../forensic/actions.mjs";
 import { resolveAdapter } from "../adapters/index.mjs";
 import { REDACT_ON, REDACT_EMAILS, redactStats } from "../security/redact.mjs";
@@ -191,6 +195,14 @@ export function startServer(opts = {}) {
   const trajectory = createTrajectoryTracker();
   const counter = { value: 0 };
   const lastBodies = [];
+  /* Which metering regime this traffic is on. Classified from the credential shape
+     on each forwarded request — see billing/plan.mjs. */
+  const plan = createPlanDetector({ upstream: UPSTREAM });
+  /* Exact token counts for the stable prefix, via /v1/messages/count_tokens. Free
+     and on its own rate-limit pool, and cached per (model, content) hash so a warm
+     session makes no calls at all. IRIS_COUNT_TOKENS=0 turns it off entirely. */
+  const tokenCounter =
+    process.env.IRIS_COUNT_TOKENS === "0" ? null : createTokenCounter({ upstream: UPSTREAM });
 
   const adapter = resolveAdapter(opts.adapter || "claude-code", {
     settingsPath: paths.settingsPath,
@@ -215,7 +227,9 @@ export function startServer(opts = {}) {
     historyLedger,
     actionLedger,
     counter,
+    tokenCounter,
     lastBodies,
+    plan,
     paths,
   };
 
@@ -242,12 +256,12 @@ export function startServer(opts = {}) {
       let html;
       try {
         html = readFileSync(paths.irisHtml, "utf8");
-      } catch {
-        try {
-          html = readFileSync(paths.classicHtml, "utf8");
-        } catch {
-          html = "<h1>Iris UI missing</h1>";
-        }
+      } catch (e) {
+        /* There used to be a second, lesser UI to fall back to here. Silently
+           serving it hid the real fault; say what could not be read instead. */
+        html =
+          `<h1>Iris UI missing</h1><p>Could not read <code>${paths.irisHtml}</code></p>` +
+          `<p>${String(e.message).replace(/[<>&]/g, "")}</p>`;
       }
       clientRes.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
       clientRes.end(html);
@@ -265,7 +279,7 @@ export function startServer(opts = {}) {
     }
     /* The price book, served as the very module this process prices with. Both UIs
        import it instead of carrying their own copy — a second book is exactly how
-       iris.html and classic.html drifted onto stale rates. */
+       the UI drifted onto stale rates while nobody was looking. */
     if (method === "GET" && url === "/__pricing.mjs") {
       try {
         const src = readFileSync(paths.pricingModule, "utf8");
@@ -280,16 +294,60 @@ export function startServer(opts = {}) {
       return;
     }
 
-    if (method === "GET" && url === "/__classic") {
+    /* The billing-mode table, served the same way and for the same reason: one
+       definition of what "subscription" means, shared by the classifier and the UI. */
+    if (method === "GET" && url === "/__plan.mjs") {
       try {
-        const html = readFileSync(paths.classicHtml, "utf8");
-        clientRes.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-        clientRes.end(html);
+        const src = readFileSync(paths.planModule, "utf8");
+        clientRes.writeHead(200, {
+          "content-type": "text/javascript; charset=utf-8",
+          "cache-control": "no-store",
+        });
+        clientRes.end(src);
       } catch (e) {
         json(clientRes, 404, { error: e.message });
       }
       return;
     }
+
+    /* Reconciliation: exact counted prefix vs the calibrated chars/4 split, per
+       call and in aggregate. This is the read-out for step one — the UI still
+       renders the estimate, and this is where you see what switching would move. */
+    if (method === "GET" && url === "/__token-audit") {
+      const recs = historyLedger.records.filter((r) => r?.audit);
+      const withCount = recs.filter((r) => r.audit.counted);
+      const mean = (pick) => {
+        const xs = withCount.map(pick).filter((n) => Number.isFinite(n));
+        return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
+      };
+      json(clientRes, 200, {
+        enabled: !!tokenCounter,
+        counter: tokenCounter ? tokenCounter.stats() : null,
+        calls: recs.length,
+        counted: withCount.length,
+        /* Mean signed error of the calibrated estimate against the counted truth.
+           Positive means chars/4 x factor was UNDER-reporting that bucket. */
+        meanDeltaPct: {
+          sys: mean((r) => r.audit.delta?.sysPct),
+          tools: mean((r) => r.audit.delta?.toolsPct),
+          msg: mean((r) => r.audit.delta?.msgPct),
+          prefix: mean((r) => r.audit.delta?.prefixPct),
+        },
+        meanFactor: mean((r) => r.audit.factor),
+        recent: recs.slice(-40).map((r) => ({
+          id: r.id,
+          time: r.time,
+          model: r.model,
+          measured: r.audit.measured,
+          factor: r.audit.factor,
+          calibrated: r.audit.calibrated,
+          counted: r.audit.counted,
+          delta: r.audit.delta,
+        })),
+      });
+      return;
+    }
+
 
     if (method === "GET" && url === "/__meta") {
       const env = loadEnvelopeSafe();
@@ -304,6 +362,8 @@ export function startServer(opts = {}) {
         settingsPath: paths.settingsPath,
         agent: adapter.label,
         adapter: { id: adapter.id, capabilities: adapter.capabilities },
+        plan: plan.snapshot(),
+        wiring: wiringStatus(),
         version: PKG_VERSION,
         policySchema: POLICY_SCHEMA_VERSION,
         authRequired: !!uiToken,
@@ -321,6 +381,31 @@ export function startServer(opts = {}) {
           wireStats,
         },
       });
+      return;
+    }
+
+    /* Every project on this machine, read from their ledgers on disk. No IPC:
+       another Iris serving another project writes its ledger atomically, and this
+       one reads it. Rows carry pricing inputs rather than a cost, so the UI prices
+       the whole fleet through one price book. */
+    if (method === "GET" && url === "/__projects") {
+      try {
+        /* Summaries by default. The rows are the part that does not scale — a
+           machine with several long-lived projects holds tens of thousands, and
+           the view renders one line per project. ?records=1 for debugging. */
+        const withRecords = parsedUrl.searchParams.get("records") === "1";
+        const fleet = fleetSummary({ currentId: paths.projectId, withRecords });
+        json(clientRes, 200, {
+          ...fleet,
+          currentId: paths.projectId,
+          /* Each project flushes every 20 calls, so another project may hold
+             unflushed work. builtAt lets the UI say how fresh each source is
+             rather than silently undercounting the total. */
+          note: "per-project builtAt reflects that project's last flush",
+        });
+      } catch (e) {
+        json(clientRes, 500, { error: e.message });
+      }
       return;
     }
 
@@ -402,7 +487,11 @@ export function startServer(opts = {}) {
         return;
       }
       const diff = contextDiff(lastBodies[n - 2], lastBodies[n - 1]);
-      json(clientRes, 200, { ok: true, diff });
+      /* contextDiff sizes with chars/4, which reads ~35% low on Claude 4.7+
+         tokenizers. Correct it the same way the traffic view does, and say which
+         factor was used so the number is not mistaken for a measurement. */
+      const f = sessionFactor(historyLedger.records);
+      json(clientRes, 200, { ok: true, diff: f ? applyCalibration(diff, f) : diff, calUsed: f ?? 1 });
       return;
     }
 
@@ -413,7 +502,13 @@ export function startServer(opts = {}) {
         ...a,
         advice: remediationAdvice(a),
       }));
-      json(clientRes, 200, { results: ranked, totalTokens: ranked.reduce((s, r) => s + (r.tokens || 0), 0) });
+      /* Same correction as the context diff: these tokens are chars/4 too. */
+      const payload = {
+        results: ranked,
+        totalTokens: ranked.reduce((s, r) => s + (r.tokens || 0), 0),
+      };
+      const f2 = sessionFactor(historyLedger.records);
+      json(clientRes, 200, f2 ? applyCalibration(payload, f2) : { ...payload, calUsed: 1 });
       return;
     }
 
@@ -623,6 +718,7 @@ export function startServer(opts = {}) {
       }
 
       lastBodies.length = 0;
+      plan.reset();
       events.broadcast({ kind: "reset", files, calls, actions, decisions });
       console.log(`Reset: cleared ${files} capture files, ${calls} calls, ${actions} actions`);
       json(clientRes, 200, { ok: true, files, calls, actions, decisions, failed });
@@ -641,6 +737,14 @@ export function startServer(opts = {}) {
     }
 
     // Host adapter owns the model proxy (Claude Code → Anthropic).
+    /* Anything under /__ is an Iris route by definition — never something to
+       forward. Without this, a retired route (or a typo) is proxied to Anthropic
+       and comes back as a puzzling upstream error instead of a plain 404. */
+    if (url.startsWith("/__")) {
+      json(clientRes, 404, { error: `no such Iris route: ${url}` });
+      return;
+    }
+
     adapter.host.handleProxyRequest(clientReq, clientRes, ctx);
   });
 
@@ -697,6 +801,59 @@ export function startServer(opts = {}) {
       return { action: "failed", wired, error: e instanceof Error ? e.message : String(e) };
     }
     return { action: "repointed", wired };
+  }
+
+  /**
+   * Where the agent is actually pointed, right now.
+   *
+   * autoWireSettings() runs once at startup and, with IRIS_AUTOWIRE=0, returns
+   * `disabled` without looking at the port at all. Both gaps end the same way: the
+   * dashboard sits on "waiting for the agent" while every turn goes somewhere else,
+   * and nothing on the page explains why. So re-read the file on demand and report
+   * the mismatch rather than inferring "idle" from an empty capture.
+   *
+   * Read-only — this never repoints anything, which is what makes it safe to call
+   * from a GET and safe under IRIS_AUTOWIRE=0.
+   *
+   * @returns {{state:string, url:string|null, agentPort:number|null, boundPort:number,
+   *            autowire:boolean, settingsPath:string}}
+   */
+  function wiringStatus() {
+    const base = {
+      url: null,
+      agentPort: null,
+      boundPort,
+      autowire: process.env.IRIS_AUTOWIRE !== "0",
+      settingsPath: paths.settingsPath,
+    };
+
+    let raw;
+    try {
+      raw = JSON.parse(readFileSync(paths.settingsPath, "utf8"));
+    } catch {
+      // FALLBACK-GUARD: INTENTIONAL — no settings file is a real state, not an error
+      return { ...base, state: "no-settings" };
+    }
+
+    const url = raw?.env?.ANTHROPIC_BASE_URL;
+    /* No base URL at all means the agent talks straight to the API. Iris is running
+       and will simply never see a byte — the most confusing state of all, because
+       everything looks healthy. */
+    if (!url) return { ...base, state: "unset" };
+
+    let host, port;
+    try {
+      const u = new URL(String(url));
+      host = u.hostname;
+      port = Number(u.port || (u.protocol === "https:" ? 443 : 80));
+    } catch {
+      // FALLBACK-GUARD: INTENTIONAL — an unparseable value is reported, not repaired
+      return { ...base, state: "unparseable", url: String(url) };
+    }
+
+    if (!LOOPBACK_HOSTS.has(host)) return { ...base, state: "external", url: String(url), agentPort: port };
+    if (port === boundPort) return { ...base, state: "ok", url: String(url), agentPort: port };
+    return { ...base, state: "elsewhere", url: String(url), agentPort: port };
   }
 
   /**

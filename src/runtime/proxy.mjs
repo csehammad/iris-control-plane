@@ -9,6 +9,7 @@ import { WIRE_REDACT, vault, wireStats, scrubDeep, makeSseRewriter } from "../se
 import { extractUsage } from "../billing/usage.mjs";
 import { historyRecord } from "../billing/history.mjs";
 import { rankTools, estTokens } from "../context/schemas.mjs";
+import { systemOf, reconcile } from "../context/counter.mjs";
 import { buildPreview, printTable } from "../context/analyzer.mjs";
 import { stamp } from "./sessions.mjs";
 
@@ -37,6 +38,8 @@ export async function handleProxyRequest(clientReq, clientRes, ctx) {
     historyLedger,
     actionLedger,
     counter,
+    tokenCounter,
+    plan,
   } = ctx;
 
   const chunks = [];
@@ -54,6 +57,10 @@ export async function handleProxyRequest(clientReq, clientRes, ctx) {
         /* non-JSON */
       }
     }
+
+    /* Classify the credential before anything is logged or forwarded. Header shape
+       only — the token itself never leaves this call. */
+    if (plan) plan.observe(clientReq.headers);
 
     const uid = `${stamp()}_${id}_${clientReq.method}`;
     const logBase = join(logDir, uid);
@@ -201,6 +208,35 @@ export async function handleProxyRequest(clientReq, clientRes, ctx) {
           status: upstreamRes.status,
           ms,
         });
+
+        /* Exact prefix counts, reconciled against the chars/4 estimate on the same
+           record. This runs after clientRes.end() above, so it costs Claude Code
+           nothing, and a warm prefix is a cache hit rather than a request. Counting
+           never throws: countPrefix returns null and the record keeps its estimate. */
+        if (tokenCounter && usage?.inputTotal) {
+          const counted = await tokenCounter.countPrefix({
+            headers: fwdHeaders,
+            model: parsed?.model,
+            system: systemOf(parsed),
+            tools: parsed?.tools,
+            toolChoice: parsed?.tool_choice,
+          });
+          const audit = reconcile(counted, rec, usage.inputTotal);
+          if (audit) {
+            rec.audit = audit;
+            if (counted) {
+              rec.counted = { sys: counted.sys, tools: counted.tools, base: counted.base };
+              const d = audit.delta;
+              console.log(
+                `     [count] prefix ${fmt(audit.counted.sys + audit.counted.tools)} exact vs ` +
+                  `${fmt(audit.calibrated.sys + audit.calibrated.tools)} estimated ` +
+                  `(${d.prefixPct >= 0 ? "+" : ""}${d.prefixPct.toFixed(1)}%) · ` +
+                  `sys ${fmt(audit.counted.sys)} · tools ${fmt(audit.counted.tools)} · ` +
+                  `cal x${audit.factor.toFixed(3)}${counted.fromCache ? " · cached" : ` · ${counted.ms}ms`}`
+              );
+            }
+          }
+        }
         historyLedger.addHistory(rec);
         try {
           writeFileSync(`${logBase}.meta.json`, JSON.stringify(rec));
@@ -232,8 +268,14 @@ export async function handleProxyRequest(clientReq, clientRes, ctx) {
       });
     } catch (err) {
       console.error(`  ! upstream error for #${id}:`, err.message);
-      if (!clientRes.headersSent) clientRes.writeHead(502, { "content-type": "application/json" });
-      clientRes.end(JSON.stringify({ error: { type: "proxy_error", message: err.message } }));
+      /* This catch also covers post-flight work that runs after the response was
+         fully written. Writing to an ended response throws ERR_STREAM_WRITE_AFTER_END
+         from an event handler, which is unhandled and kills the process — so the
+         client only hears about failures it has not already been answered for. */
+      if (!clientRes.writableEnded) {
+        if (!clientRes.headersSent) clientRes.writeHead(502, { "content-type": "application/json" });
+        clientRes.end(JSON.stringify({ error: { type: "proxy_error", message: err.message } }));
+      }
       events.record({ kind: "response", id, uid, status: 502, ms: Date.now() - startedAt, error: err.message });
     }
   });

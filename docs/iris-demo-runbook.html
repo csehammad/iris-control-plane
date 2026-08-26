@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="A seven-scene recording script for demoing Iris: narration, click paths, verified Guard commands and a pre-flight checklist.">
+<title>Iris Demo Runbook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Minimal reset. The Artifact host injects one; a standalone file carries its own. */
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body,h1,h2,h3,p,figure,blockquote,dl,dd{margin:0}
+img,picture,video,canvas,svg{display:block;max-width:100%}
+input,button,textarea,select{font:inherit}
+</style>
+<style>
+/* ─────────────────────────────────────────────────────────────
+   Palette lifted from Iris's own dashboard tokens, so the runbook
+   reads as part of the product rather than a doc about it.
+   Neutrals carry the same blue bias as the app's ink ramp.
+   ───────────────────────────────────────────────────────────── */
+:root{
+  --ink:#131826; --ink2:#59637A; --ink3:#8B95AA;
+  --paper:#FFFFFF; --well:#F7F9FC; --sunk:#EDF1F7;
+  --line:#E1E6EF; --line2:#CDD5E2;
+  --wire:#1B4DFF; --wire-soft:#EEF2FF;
+  --jade:#07785E; --jade-soft:#E1F4EE;
+  --amber:#A75A06; --amber-soft:#FDF0DF;
+  --rust:#BB332A; --rust-soft:#FCE9E7;
+  --violet:#6435DE; --violet-soft:#F0EBFE;
+  --shadow:0 1px 2px rgba(19,24,38,.05), 0 8px 24px -12px rgba(19,24,38,.14);
+  --ui:"Instrument Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --say:"Source Serif 4", Georgia, "Times New Roman", serif;
+  --mono:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ink:#E8ECF4; --ink2:#A3ADC2; --ink3:#6F7A91;
+    --paper:#0E121C; --well:#151A26; --sunk:#1B2130;
+    --line:#232A3A; --line2:#333C50;
+    --wire:#7A93FF; --wire-soft:#161E3A;
+    --jade:#4FC5A3; --jade-soft:#0F2A24;
+    --amber:#E5A44D; --amber-soft:#2B2013;
+    --rust:#F0847A; --rust-soft:#2E1614;
+    --violet:#A98BFF; --violet-soft:#1F1836;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#E8ECF4; --ink2:#A3ADC2; --ink3:#6F7A91;
+  --paper:#0E121C; --well:#151A26; --sunk:#1B2130;
+  --line:#232A3A; --line2:#333C50;
+  --wire:#7A93FF; --wire-soft:#161E3A;
+  --jade:#4FC5A3; --jade-soft:#0F2A24;
+  --amber:#E5A44D; --amber-soft:#2B2013;
+  --rust:#F0847A; --rust-soft:#2E1614;
+  --violet:#A98BFF; --violet-soft:#1F1836;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--ui); font-size:16px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:920px; margin:0 auto; padding:56px 24px 96px}
+
+/* ── masthead ─────────────────────────────────────── */
+.mast{display:flex; flex-direction:column; gap:18px; padding-bottom:30px; border-bottom:2px solid var(--ink)}
+.eyebrow{
+  font-family:var(--mono); font-size:11.5px; font-weight:500;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--ink3);
+}
+h1{
+  margin:0; font-size:clamp(38px,6.5vw,60px); font-weight:700;
+  letter-spacing:-.035em; line-height:.98; text-wrap:balance;
+}
+.standfirst{
+  margin:0; max-width:60ch; font-family:var(--say); font-size:19px;
+  line-height:1.5; color:var(--ink2);
+}
+.runtime{display:flex; flex-wrap:wrap; gap:8px}
+.chip{
+  font-family:var(--mono); font-size:12px; font-weight:500;
+  padding:5px 10px; border:1px solid var(--line2); border-radius:6px;
+  color:var(--ink2); background:var(--well);
+}
+.chip b{color:var(--ink); font-weight:600}
+
+/* ── sections ─────────────────────────────────────── */
+section{margin-top:56px}
+h2{
+  margin:0 0 6px; font-size:27px; font-weight:700;
+  letter-spacing:-.025em; text-wrap:balance;
+}
+.lede{margin:0 0 22px; max-width:64ch; color:var(--ink2); font-size:15.5px}
+h3{margin:32px 0 10px; font-size:17px; font-weight:600; letter-spacing:-.012em}
+
+p{margin:0 0 13px; max-width:66ch}
+a{color:var(--wire)}
+code{
+  font-family:var(--mono); font-size:.875em; background:var(--sunk);
+  padding:2px 5px; border-radius:4px; color:var(--ink);
+}
+strong{font-weight:600}
+
+/* ── checklist ────────────────────────────────────── */
+.check{display:flex; flex-direction:column; gap:0; border:1px solid var(--line); border-radius:12px; overflow:hidden}
+.check-row{display:flex; gap:14px; padding:15px 18px; border-bottom:1px solid var(--line); align-items:flex-start}
+.check-row:last-child{border-bottom:0}
+.box{
+  width:17px; height:17px; flex:none; margin-top:2px;
+  border:1.5px solid var(--line2); border-radius:4px;
+}
+.check-row > div{min-width:0; flex:1}
+.check-t{font-weight:600; font-size:15px; margin-bottom:2px}
+.check-d{font-size:14px; color:var(--ink2); line-height:1.5}
+.check-row.flag{background:var(--amber-soft)}
+.check-row.flag .box{border-color:var(--amber)}
+
+/* ── scenes ───────────────────────────────────────── */
+.scene{
+  border:1px solid var(--line); border-radius:14px; background:var(--paper);
+  box-shadow:var(--shadow); overflow:hidden; margin-bottom:20px;
+}
+.scene-head{
+  display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;
+  padding:16px 20px; background:var(--well); border-bottom:1px solid var(--line);
+}
+.num{
+  font-family:var(--mono); font-size:12px; font-weight:600; color:var(--paper);
+  background:var(--ink); width:24px; height:24px; border-radius:6px;
+  display:flex; align-items:center; justify-content:center; flex:none;
+  align-self:center;
+}
+.scene-title{font-size:17px; font-weight:700; letter-spacing:-.015em; flex:1; min-width:180px}
+.scene-meta{font-family:var(--mono); font-size:11.5px; color:var(--ink3); letter-spacing:.04em}
+.scene-body{padding:6px 20px 20px}
+
+.beat{display:flex; gap:14px; padding:14px 0; border-bottom:1px dashed var(--line)}
+.beat:last-child{border-bottom:0}
+.beat-label{
+  font-family:var(--mono); font-size:10.5px; font-weight:600; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ink3); width:64px; flex:none; padding-top:4px;
+}
+.beat-body{flex:1; min-width:0}
+.beat-body > :last-child{margin-bottom:0}
+
+.do{font-family:var(--mono); font-size:13.5px; line-height:1.7; color:var(--ink)}
+.do em{font-style:normal; color:var(--ink3)}
+.say{
+  font-family:var(--say); font-size:17.5px; line-height:1.52;
+  color:var(--ink); max-width:60ch;
+}
+.say + .say{margin-top:10px}
+.watch{font-size:14px; color:var(--ink2); max-width:62ch}
+
+/* ── guard verdict table ──────────────────────────── */
+.verdicts{display:flex; flex-direction:column; gap:10px; margin:20px 0}
+.verdict{
+  display:flex; gap:0; border:1px solid var(--line); border-radius:11px; overflow:hidden;
+}
+.vstripe{width:5px; flex:none}
+.vbody{padding:14px 16px; flex:1; min-width:0}
+.vhead{display:flex; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap}
+.vtag{
+  font-family:var(--mono); font-size:11px; font-weight:600; letter-spacing:.1em;
+  padding:3px 8px; border-radius:5px;
+}
+.vrule{font-family:var(--mono); font-size:11.5px; color:var(--ink3)}
+.vdesc{font-size:14.5px; color:var(--ink2); margin-bottom:10px; max-width:62ch}
+.cmds{display:flex; flex-direction:column; gap:5px}
+.cmd{
+  font-family:var(--mono); font-size:13px; padding:7px 10px;
+  background:var(--sunk); border-radius:6px; overflow-x:auto; white-space:nowrap;
+}
+.v-allow .vstripe{background:var(--jade)}
+.v-allow .vtag{background:var(--jade-soft); color:var(--jade)}
+.v-ask .vstripe{background:var(--amber)}
+.v-ask .vtag{background:var(--amber-soft); color:var(--amber)}
+.v-deny .vstripe{background:var(--rust)}
+.v-deny .vtag{background:var(--rust-soft); color:var(--rust)}
+
+/* ── callouts ─────────────────────────────────────── */
+.note{
+  border-left:3px solid var(--wire); background:var(--wire-soft);
+  padding:14px 18px; border-radius:0 10px 10px 0; margin:18px 0;
+}
+.note.warn{border-left-color:var(--rust); background:var(--rust-soft)}
+.note-t{font-weight:600; font-size:14.5px; margin-bottom:4px}
+.note p{font-size:14.5px; color:var(--ink2); margin-bottom:0; max-width:64ch}
+.note.warn p{color:var(--ink2)}
+
+/* ── tables ───────────────────────────────────────── */
+.tscroll{overflow-x:auto; border:1px solid var(--line); border-radius:11px; margin:18px 0}
+table{border-collapse:collapse; width:100%; font-size:14.5px; min-width:520px}
+th{
+  text-align:left; font-family:var(--mono); font-size:10.5px; font-weight:600;
+  letter-spacing:.11em; text-transform:uppercase; color:var(--ink3);
+  padding:11px 15px; border-bottom:1px solid var(--line); background:var(--well);
+  white-space:nowrap;
+}
+td{padding:12px 15px; border-bottom:1px solid var(--line); vertical-align:top; color:var(--ink2)}
+tr:last-child td{border-bottom:0}
+td b{color:var(--ink); font-weight:600}
+td.mono, th.mono{font-family:var(--mono); font-size:13px; font-variant-numeric:tabular-nums}
+
+/* ── page map ─────────────────────────────────────── */
+.map{display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); margin:20px 0}
+.mcard{border:1px solid var(--line); border-radius:11px; padding:15px 16px; background:var(--well)}
+.mkey{
+  font-family:var(--mono); font-size:11px; font-weight:600; color:var(--paper);
+  background:var(--ink2); border-radius:4px; padding:2px 6px; margin-right:7px;
+}
+.mname{font-weight:700; font-size:15.5px; letter-spacing:-.01em}
+.mline{font-size:14px; color:var(--ink2); margin-top:6px; line-height:1.5}
+
+.foot{
+  margin-top:64px; padding-top:24px; border-top:1px solid var(--line);
+  font-size:13.5px; color:var(--ink3); max-width:64ch;
+}
+
+@media (max-width:640px){
+  .wrap{padding:36px 18px 64px}
+  .beat{flex-direction:column; gap:6px}
+  .beat-label{width:auto; padding-top:0}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="mast">
+  <div class="eyebrow">Recording script · Iris for Claude Code</div>
+  <h1>Iris Demo Runbook</h1>
+  <p class="standfirst">A seven-scene walkthrough that takes a viewer from “my agent costs something, I don’t know what” to a published change and a blocked command — using only numbers Iris measured from real traffic.</p>
+  <div class="runtime">
+    <span class="chip"><b>7</b> scenes</span>
+    <span class="chip"><b>~9 min</b> runtime</span>
+    <span class="chip"><b>1</b> browser tab + <b>1</b> terminal</span>
+    <span class="chip">Iris on <b>:8787</b></span>
+  </div>
+</header>
+
+<section>
+  <h2>Before you hit record</h2>
+  <p class="lede">Every failed demo of this product fails the same way: the dashboard is empty, or it shows one degenerate call. Both are fixable in two minutes.</p>
+
+  <div class="check">
+    <div class="check-row">
+      <div class="box"></div>
+      <div>
+        <div class="check-t">Iris is running in the project you’ll demo</div>
+        <div class="check-d">From the project directory: <code>node bin/iris.mjs</code>. The header chip should read <code>project · recording</code> with a green dot.</div>
+      </div>
+    </div>
+    <div class="check-row flag">
+      <div class="box"></div>
+      <div>
+        <div class="check-t">Guard hooks point at the copy you’re demoing</div>
+        <div class="check-d">Check <code>.claude/settings.json</code> → <code>hooks</code>. If the command path contains <code>.npm/_npx/</code>, your hooks run the <em>published</em> Iris, not your working tree — so any Guard change you just made won’t appear. Re-run <code>iris init</code> from the checkout to re-point them.</div>
+      </div>
+    </div>
+    <div class="check-row flag">
+      <div class="box"></div>
+      <div>
+        <div class="check-t">The authority envelope has a task written on it</div>
+        <div class="check-d">An accepted envelope with an empty <code>task</code> field makes Scene 6 look unfinished. Open Guard, type the task, click <b>Accept envelope</b> before recording.</div>
+      </div>
+    </div>
+    <div class="check-row">
+      <div class="box"></div>
+      <div>
+        <div class="check-t">Warm the capture with a real agent turn</div>
+        <div class="check-d">Run <code>claude</code> and ask it something that uses tools — “read the README and summarise it” works. A turn carrying the full tool array is what makes Optimize meaningful; background utility calls carry no schemas and will leave the page looking broken.</div>
+      </div>
+    </div>
+    <div class="check-row">
+      <div class="box"></div>
+      <div>
+        <div class="check-t">Set the header range to <span style="font-family:var(--mono)">Today</span></div>
+        <div class="check-d">The range filters every view. <em>Last hour</em> is the most common reason a page looks empty mid-demo.</div>
+      </div>
+    </div>
+    <div class="check-row">
+      <div class="box"></div>
+      <div>
+        <div class="check-t">Don’t clear the capture</div>
+        <div class="check-d">The <b>Clear captured data</b> link in the sidebar footer wipes <code>proxy-logs/</code>, the spend ledger and the action log. There is no undo.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>The story you’re telling</h2>
+  <p class="lede">Pick one narrative and hold it. This one works because each page answers the question the previous page raises.</p>
+
+  <p><strong>The setup:</strong> you’ve been using Claude Code on a real project for a few weeks. It works. You have no idea what it costs, what it’s carrying, or what it’s allowed to do — and none of those are visible from inside the tool.</p>
+
+  <p><strong>The arc:</strong> <em>see it</em> → <em>price it</em> → <em>cut it</em> → <em>constrain it</em> → <em>prove it</em>. Overview and Traffic make the traffic visible. Spend prices it from reported usage. Context shows what’s filling the window. Optimize turns that into a change you publish. Guard bounds what the agent may do. Flight Recorder is the receipt.</p>
+
+  <div class="note">
+    <div class="note-t">The line that lands hardest</div>
+    <p>Iris sits <em>between</em> Claude Code and the API, so everything on screen is measured off the wire — not estimated, not sampled, not reported by the thing being measured.</p>
+  </div>
+</section>
+
+<section>
+  <h2>The seven scenes</h2>
+  <p class="lede"><b>Do</b> is what you click. <b>Say</b> is narration you can read aloud. <b>Watch</b> is what to make sure is on screen before you move on.</p>
+
+  <div class="scene">
+    <div class="scene-head">
+      <span class="num">1</span>
+      <span class="scene-title">Overview — what a session actually did</span>
+      <span class="scene-meta">~60s · key 1</span>
+    </div>
+    <div class="scene-body">
+      <div class="beat">
+        <div class="beat-label">Do</div>
+        <div class="beat-body"><div class="do">Open <em>127.0.0.1:8787/__monitor</em>. Land on Overview. Let the KPI row and the ribbon fill.</div></div>
+      </div>
+      <div class="beat">
+        <div class="beat-label">Say</div>
+        <div class="beat-body">
+          <p class="say">This is a real Claude Code session, recorded as it happened. Iris runs as a local proxy — every request the agent makes passes through it on the way to Anthropic.</p>
+          <p class="say">Five numbers across the top: how much context was shipped, what it was billed, how much of it was tool schemas nothing called, whether an authority envelope is in force, and what Guard decided.</p>
+        </div>
+      </div>
+      <div class="beat">
+        <div class="beat-label">Watch</div>
+        <div class="beat-body"><p class="watch">The ribbon — “the payload, drawn to scale” — needs a live call to render. If it says <em>ledger row</em>, the browser was reloaded after those calls; run one more turn and it comes back.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scene">
+    <div class="scene-head">
+      <span class="num">2</span>
+      <span class="scene-title">The ribbon — one turn, drawn to scale</span>
+      <span class="scene-meta">~50s · hover</span>
+    </div>
+    <div class="scene-body">
+      <div class="beat">
+        <div class="beat-label">Do</div>
+        <div class="beat-body"><div class="do">Hover slowly across the ribbon, left to right. Pause on a tool-schema band. Point out a dashed cache-breakpoint notch.</div></div>
+      </div>
+      <div class="beat">
+        <div class="beat-label">Say</div>
+        <div class="beat-body">
+          <p class="say">Every pixel here is a token that left this machine on one turn. Blue is the system prompt, gold is tool schemas, violet is the conversation.</p>
+          <p class="say">The dashed lines are cache breakpoints. Everything to the left of one gets re-sent every single turn — which is the whole reason tool schemas cost what they do.</p>
+        </div>
+      </div>
+      <div class="beat">
+        <div class="beat-label">Watch</div>
+        <div class="beat-body"><p class="watch">The tooltip shows tokens, cost per turn and cost per month for the band under the cursor. That per-month figure is the hook into Scene 5 — say it out loud.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scene">
+    <div class="scene-head">
+      <span class="num">3</span>
+      <span class="scene-title">Traffic + the call inspector</span>
+      <span class="scene-meta">~90s · key 3, then click a row</span>
+    </div>
+    <div class="scene-body">
+      <div class="beat">
+        <div class="beat-label">Do</div>
+        <div class="beat-body"><div class="do">Press <em>3</em>. Click the row with the largest token count — the drawer opens on the right. Scroll it. Expand <em>System prompt</em>, then <em>Tool schemas</em>, then <em>Conversation</em>. Use <em>j</em> / <em>k</em> to step between calls.</div></div>
+      </div>
+      <div class="beat">
+        <div class="beat-label">Say</div>
+        <div class="beat-body">
+          <p class="say">Every call the agent made, with what it carried and what it cost. Click one and you get the inspector.</p>
+          <p class="say">Top of the drawer is the invoice — input, cache read, cache write at five minutes and at one hour, output, thinking tokens. Each line is tokens times the rate that category actually bills at, so you can check the arithmetic yourself.</p>
+          <p class="say">Below that is the payload itself. This is the full system prompt Claude Code sent — every block, with the cache breakpoints marked. Most people have never seen it.</p>
+          <p class="say">Then the tool schemas, ranked by size. Then the whole conversation, message by message, including the thinking blocks.</p>
+        </div>
+      </div>
+      <div class="beat">
+        <div class="beat-label">Watch</div>
+        <div class="beat-body"><p class="watch">The system prompt block is the single most memorable thing in the demo. Scroll it slowly enough that the viewer registers how long it is. If it’s empty, you clicked a ledger row rather than a live call.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scene">
+    <div class="scene-head">
+      <span class="num">4</span>
+      <span class="scene-title">Spend — measured, not estimated</span>
+      <span class="scene-meta">~70s · key 2</span>
+    </div>
+    <div class="scene-body">
+      <div class="beat">
+        <div class="beat-label">Do</div>
+        <div class="beat-body"><div class="do">Press <em>2</em>. Walk the KPI row, then the per-day table. Stop on <b>Cache expiries</b>.</div></div>
+      </div>
+      <div class="beat">
+        <div class="beat-label">Say</div>
+        <div class="beat-body">
+          <p class="say">This is priced from the usage the API reported on each response — not estimated from token counts. Calls whose model isn’t in the price book are excluded rather than counted as free.</p>
+          <p class="say">The one worth pausing on is cache expiries. Step away for longer than the cache lifetime and your next call reprocesses the entire context at write price instead of reading it back at a tenth of input. Iris shows you what those idle gaps cost — and it reads the lifetime off the TTL each write actually used, so it holds whichever plan you’re on.</p>
+        </div>
+      </div>
+      <div class="beat">
+        <div class="beat-label">Watch</div>
+        <div class="beat-body"><p class="watch">Now click the billing-mode chip in the header. This is the moment to make the point below about what the dollars mean.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scene">
+    <div class="scene-head">
+      <span class="num">5</span>
+      <span class="scene-title">Billing mode — why the numbers are believable</span>
+      <span class="scene-meta">~60s · header chip + ? key</span>
+    </div>
+    <div class="scene-body">
+      <div class="beat">
+        <div class="beat-label">Do</div>
+        <div class="beat-body"><div class="do">Click the mode chip in the header. Show the four modes. Switch <em>Subscription seat</em> → <em>Console API key</em> and let the viewer see the figures re-label. Switch back. Press <em>?</em> for the pricing explainer, scroll it, close it.</div></div>
+      </div>
+      <div class="beat">
+        <div class="beat-label">Say</div>
+        <div class="beat-body">
+          <p class="say">Here’s the thing most cost tools get wrong. Claude Code meters the same tokens four different ways, and Iris reads which one you’re on from the credential shape on the wire — never the credential itself.</p>
+          <p class="say">On a Max seat you pay a flat fee, so a dollar figure isn’t a bill. Iris says so: it leads with tokens and share of your metered usage, and puts the dollars in brackets as what this traffic would cost the moment you pass your allowance and usage credits start charging per token.</p>
+          <p class="say">Switch to an API key and the dollars become the headline, because now they’re literally your invoice. On Bedrock or Vertex it drops the dollar columns entirely rather than pricing your traffic off a rate card that doesn’t apply.</p>
+        </div>
+      </div>
+      <div class="beat">
+        <div class="beat-label">Watch</div>
+        <div class="beat-body"><p class="watch">The help sheet has a “What Iris cannot tell you” section. Land on it. Saying out loud what the tool doesn’t know buys more credibility than any number on the page.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scene">
+    <div class="scene-head">
+      <span class="num">6</span>
+      <span class="scene-title">Optimize — cut the tool tax, publish it</span>
+      <span class="scene-meta">~110s · key 5 · the payoff</span>
+    </div>
+    <div class="scene-body">
+      <div class="beat">
+        <div class="beat-label">Do</div>
+        <div class="beat-body"><div class="do">Press <em>5</em>. Read the KPI row. Point at <b>On but unused</b>. Click <b>Stage N changes</b> — watch the header counter increment. Scroll a group table and toggle one tool by hand. Then click <b>Publish changes</b>. Cut to the terminal and <code>cat .claude/settings.json</code>.</div></div>
+      </div>
+      <div class="beat">
+        <div class="beat-label">Say</div>
+        <div class="beat-body">
+          <p class="say">Tool schemas ship on every single turn, whether the agent uses them or not. This page counts which ones were never called.</p>
+          <p class="say">The rate isn’t list price — a schema sits inside the cached prefix, so from the second turn it bills at the cache-read rate. Pricing it at list would overstate this tenfold. The turn count is measured from your own capture, with idle gaps over five minutes excluded so lunch doesn’t drag your pace down. The working pattern is the one assumption, and it’s a control you can change right here.</p>
+          <p class="say">Stage the unused ones, publish — and that writes to the deny list in your project’s settings. Next Claude Code session, those schemas don’t ship.</p>
+        </div>
+      </div>
+      <div class="beat">
+        <div class="beat-label">Watch</div>
+        <div class="beat-body"><p class="watch">Cutting to the terminal to show the deny list actually change is the strongest beat in the demo — it proves Iris writes real config rather than keeping a private opinion. Core tools are locked by default; flip <b>Let me switch off core tools too</b> only if you want to show the guardrail.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scene">
+    <div class="scene-head">
+      <span class="num">7</span>
+      <span class="scene-title">Guard + Flight Recorder — what it may do, and what it did</span>
+      <span class="scene-meta">~150s · keys 6 and 7</span>
+    </div>
+    <div class="scene-body">
+      <div class="beat">
+        <div class="beat-label">Do</div>
+        <div class="beat-body"><div class="do">Press <em>6</em>. Show the may / may-not lists and the accepted envelope. Cut to the terminal, run the three commands in the next section. Cut back — decisions appear in the right-hand column. Press <em>7</em> for Flight Recorder, click a row to expand it.</div></div>
+      </div>
+      <div class="beat">
+        <div class="beat-label">Say</div>
+        <div class="beat-body">
+          <p class="say">Guard is the part that isn’t about money. The model proposes what this task needs; you accept it; Iris enforces it from outside the conversation. The model can propose an envelope — it cannot widen one.</p>
+          <p class="say">This runs as a PreToolUse hook, so the decision happens <em>before</em> the tool executes. And it evaluates effects, not command strings — what this actually does, to what, in which environment.</p>
+          <p class="say">Three outcomes. Inside scope, it runs. Destructive but recoverable, it asks. Production, or destructive outside your project — denied, and the decision is logged with the rule that fired.</p>
+          <p class="say">Flight Recorder is the receipt: every action that ran, in order, with what Guard decided about it. Shell writes are flagged. Click any row for the full command.</p>
+        </div>
+      </div>
+      <div class="beat">
+        <div class="beat-label">Watch</div>
+        <div class="beat-body"><p class="watch">Guard decisions only appear if the PreToolUse hook is installed <em>and</em> pointed at the copy you’re running. This is the checklist item that most often bites.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>The Guard demo, specifically</h2>
+  <p class="lede">You asked what to show here. These are the three tiers with commands taken from Iris’s own policy test suite — so they behave exactly as written, against the default envelope: filesystem <code>$PROJECT/**</code>, environments <code>staging</code>, production <code>deny</code>, destructive <code>ask</code>.</p>
+
+  <div class="verdicts">
+    <div class="verdict v-allow">
+      <div class="vstripe"></div>
+      <div class="vbody">
+        <div class="vhead"><span class="vtag">ALLOW</span><span class="vrule">inside envelope scope</span></div>
+        <p class="vdesc">Editing files inside the project, running tests, local non-destructive tools. No prompt, no friction — the point is that Guard is invisible until it isn’t.</p>
+        <div class="cmds">
+          <div class="cmd">npm test</div>
+          <div class="cmd">edit any file under the project root</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="verdict v-ask">
+      <div class="vstripe"></div>
+      <div class="vbody">
+        <div class="vhead"><span class="vtag">ASK</span><span class="vrule">destructive · unknown · external write</span></div>
+        <p class="vdesc">Recoverable, or not confidently classifiable. Guard stops and puts the decision in front of you rather than guessing. Note that a push to <code>main</code> asks rather than denies — the envelope is about consequence, not ceremony.</p>
+        <div class="cmds">
+          <div class="cmd">rm -rf /tmp/stuff</div>
+          <div class="cmd">find . -name '*.log' -delete</div>
+          <div class="cmd">git push --force origin main</div>
+          <div class="cmd">python3 deploy.py</div>
+          <div class="cmd">npx create-thing@latest</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="verdict v-deny">
+      <div class="vstripe"></div>
+      <div class="vbody">
+        <div class="vhead"><span class="vtag">DENY</span><span class="vrule">hard rule · no prompt offered</span></div>
+        <p class="vdesc">Production, production credentials, or destruction outside the project. These don’t ask, because a prompt you can click through isn’t a boundary.</p>
+        <div class="cmds">
+          <div class="cmd">deploy --env production</div>
+          <div class="cmd">railway volume delete v --environment production</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note warn">
+    <div class="note-t">Do not type a real destructive command on camera</div>
+    <p>The two DENY commands above are safe to demo because neither tool is likely installed and neither target exists — if Guard were somehow bypassed, nothing happens. Iris also denies things like <code>rm -rf /etc</code>, and that is worth <em>saying</em>. It is not worth typing into a live shell that a misconfigured hook might not be watching.</p>
+  </div>
+
+  <h3>The three lines that carry Guard</h3>
+  <p>If you cut everything else, keep these:</p>
+  <p class="say">“Discovery does not grant authority. The agent finding your production credentials doesn’t mean it may use them.”</p>
+  <p class="say">“It evaluates effects, not strings — so it isn’t a regex blocklist you can talk your way around by rephrasing the command.”</p>
+  <p class="say">“And it catches accidents and drift, not a model deliberately working around it. That distinction is written into the product, not glossed over.”</p>
+
+  <h3>The trajectory angle, if you have time</h3>
+  <p>Guard also tracks <em>paths</em> across a session, not just individual calls — staging drifting toward production, reads escalating to destructive operations, credential scope widening, recovery depth climbing after repeated failures. Signals show at the top of the Decisions column. It’s a strong closing beat because no single call in the sequence looks alarming on its own.</p>
+</section>
+
+<section>
+  <h2>Page-by-page cheat sheet</h2>
+  <p class="lede">For the “what does each page do” pass, or a written description under the video. Number keys switch views.</p>
+
+  <div class="map">
+    <div class="mcard">
+      <div><span class="mkey">1</span><span class="mname">Overview</span></div>
+      <div class="mline">Five KPIs, the ribbon, cost-per-call chart, and the signals Iris flagged. Where you start and where you return.</div>
+    </div>
+    <div class="mcard">
+      <div><span class="mkey">2</span><span class="mname">Spend</span></div>
+      <div class="mline">Measured cost per day and per model, cache economics, and what idle gaps cost when the prefix had to be rebuilt.</div>
+    </div>
+    <div class="mcard">
+      <div><span class="mkey">3</span><span class="mname">Traffic</span></div>
+      <div class="mline">Every call in a table. Click any row for the inspector — invoice, system prompt, tool schemas, conversation.</div>
+    </div>
+    <div class="mcard">
+      <div><span class="mkey">4</span><span class="mname">Context</span></div>
+      <div class="mline">What fills the window on one turn, split five ways: breakdown, system prompt, tool schemas, conversation, and what changed since the previous turn.</div>
+    </div>
+    <div class="mcard">
+      <div><span class="mkey">5</span><span class="mname">Optimize</span></div>
+      <div class="mline">Which schemas ship and which were never called, what that repeats to per month, and a stage-then-publish flow that writes the deny list.</div>
+    </div>
+    <div class="mcard">
+      <div><span class="mkey">6</span><span class="mname">Guard</span></div>
+      <div class="mline">The authority envelope — may / may not — plus every PreToolUse decision with the rule that fired.</div>
+    </div>
+    <div class="mcard">
+      <div><span class="mkey">7</span><span class="mname">Flight Recorder</span></div>
+      <div class="mline">Every action that actually ran, newest first, filterable by tool. Shell writes flagged. Click to expand.</div>
+    </div>
+    <div class="mcard">
+      <div><span class="mkey">⌘K</span><span class="mname">Command palette</span></div>
+      <div class="mline">Jump to a view, a call, a tool, or an action. Worth two seconds on camera to show the surface is navigable.</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>If something goes wrong mid-take</h2>
+
+  <div class="tscroll">
+    <table>
+      <thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>“Nothing is reaching this proxy”</b></td>
+          <td>Your agent’s <code>ANTHROPIC_BASE_URL</code> points at a different port than Iris bound.</td>
+          <td>The banner names both ports. Restart Iris on the port settings.json expects, or fix the file.</td>
+        </tr>
+        <tr>
+          <td><b>“Waiting for the agent…”</b></td>
+          <td>Wiring is correct; nothing has run yet.</td>
+          <td>Run a turn in the project.</td>
+        </tr>
+        <tr>
+          <td><b>“Nothing in this range”</b></td>
+          <td>Header range excludes your calls.</td>
+          <td>Switch to <b>Today</b> or <b>All</b>.</td>
+        </tr>
+        <tr>
+          <td><b>Ribbon blank, row says “ledger row”</b></td>
+          <td>Payload text lives in memory; the page was reloaded after those calls.</td>
+          <td>Run one more turn. The bodies are still in <code>proxy-logs/</code>, but nothing reads them back yet.</td>
+        </tr>
+        <tr>
+          <td><b>Optimize shows everything blocked</b></td>
+          <td>No tool schemas captured since Iris last started — the schema store is in-memory, so the list falls back to the deny list alone.</td>
+          <td>Run a turn that uses tools. Don’t restart Iris again before recording.</td>
+        </tr>
+        <tr>
+          <td><b>No Guard decisions</b></td>
+          <td>Hook missing, or pointing at a different Iris install.</td>
+          <td>Check <code>hooks</code> in settings.json; re-run <code>iris init</code> from the copy you’re running.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<p class="foot">Commands in the Guard section are drawn from <code>tests/guard.test.mjs</code>, so they match the shipped policy engine. Everything else describes the dashboard as built. Re-check the two flagged setup items after any restart — both were live in this workspace when this runbook was written.</p>
+
+</div>
+</body>
+</html>

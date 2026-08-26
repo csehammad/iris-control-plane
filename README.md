@@ -4,7 +4,7 @@
 
 [![npm](https://img.shields.io/npm/v/@zero-drift/iris.svg)](https://www.npmjs.com/package/@zero-drift/iris)
 [![node](https://img.shields.io/node/v/@zero-drift/iris.svg)](https://nodejs.org)
-[![tests](https://img.shields.io/badge/tests-176%20passing-brightgreen.svg)](#running-from-a-checkout)
+[![tests](https://img.shields.io/badge/tests-485%20passing-brightgreen.svg)](#running-from-a-checkout)
 [![license](https://img.shields.io/npm/l/@zero-drift/iris.svg)](./LICENSE)
 
 Iris is a local proxy and policy layer for [Claude Code](https://code.claude.com). It binds to `127.0.0.1` and sits between Claude Code and Anthropic.
@@ -159,6 +159,36 @@ Core tools require an explicit unlock before Optimize can disable them. Removing
 
 ---
 
+## Billing modes
+
+Claude Code meters the same tokens four different ways. Which one applies decides whether a dollar
+figure on the dashboard is your bill, a ceiling, or the wrong rate card entirely.
+
+Iris classifies the mode from the *shape* of the credential on the wire — never the credential
+itself. No token, and no fragment of one, is read, stored, or exposed.
+
+| Mode                                     | Detected from             | Cache TTL | A `$` figure is                          |
+| ---------------------------------------- | ------------------------- | --------- | ---------------------------------------- |
+| Subscription seat (Pro/Max/Team/Ent.)    | `Authorization: Bearer`   | 1 hour    | not a bill — the API-rate equivalent     |
+| Usage credits                            | not on the wire — you set it | 5 min  | literal, per token at list rates          |
+| Console API key                          | `x-api-key`               | 5 min     | literal, before contracted discounts      |
+| Cloud provider (Bedrock/Vertex/Foundry)  | upstream host             | 5 min     | withheld — partner rates are not carried  |
+
+On a subscription seat nobody is billed per token, so Optimize leads with tokens per turn and the
+share of your metered usage, and brackets the dollars as what the traffic would cost once you pass
+your allowance. On an API key the dollars lead. On a cloud provider the money columns are dropped
+rather than filled from a rate card that does not apply.
+
+Nothing on the wire distinguishes a seat inside its allowance from one already drawing on usage
+credits, so that stays a user choice in the header. Selecting it also shortens the cache lifetime
+Iris assumes.
+
+Iris cannot see your remaining allowance — seat quotas are not published as token counts. Run
+`/usage` in Claude Code for that. Every plan-relative figure in Iris is a share of your own measured
+usage, which needs no quota.
+
+---
+
 ## Guard
 
 Guard converts each tool call into a structured effect using [effects.mjs](src/guard/effects.mjs), then evaluates that effect against an authority envelope stored at:
@@ -214,7 +244,7 @@ git clone https://github.com/csehammad/iris-control-plane.git
 cd iris-control-plane
 
 npm start      # proxy + UI on 127.0.0.1:8787
-npm test       # 176 assertions across 6 suites
+npm test       # 485 assertions across 10 suites
 ```
 
 Iris has no runtime or development package dependencies, so there is no install step after cloning.
@@ -227,15 +257,15 @@ The test suite uses a local stub upstream. It requires no API key and makes no o
 bin/iris.mjs          CLI: start, init, hook
 
 src/runtime/          proxy, HTTP server, sessions, SSE events
-src/context/          request analysis, schema sizing, calibration, trim modelling
+src/context/          request analysis, schema sizing, calibration, exact token counting
 src/guard/            effect normalization, policy ladder, authority, trajectory
 src/adapters/claude/  Claude Code settings, hooks, permissions
 src/billing/          usage extraction, list pricing, cache accounting
 src/security/         secret redaction, credential patterns
 src/forensic/         action ledger, correlation, timeline, export
 
-ui/                   dashboard, classic UI, in-app guide
-tests/                6 suites, run with `node tests/run.mjs`
+ui/                   dashboard, in-app guide
+tests/                10 suites, run with `node tests/run.mjs`
 ```
 
 The adapter boundary lives in [contract.mjs](src/adapters/contract.mjs).
@@ -252,10 +282,11 @@ These are the main settings. The documentation covers the rest.
 | ------------------- | --------- | ------------------------------------------------------------------------------------------ |
 | `PROXY_PORT`        | `8787`    | Bind port. An explicitly configured port stays fixed on conflict                           |
 | `IRIS_HOME`         | `~/.iris` | Storage for envelopes, decisions, and exports                                              |
-| `IRIS_AUTOWIRE`     | on        | Keeps `ANTHROPIC_BASE_URL` pointed at the active Iris port. Set `=0` to manage it yourself |
+| `IRIS_AUTOWIRE`     | on        | Keeps `ANTHROPIC_BASE_URL` pointed at the active Iris port. Set `=0` to manage it yourself; the dashboard still reports a mismatch |
 | `PROXY_REDACT`      | on        | Scrubs detected secrets before captures are written to disk                                |
 | `PROXY_REDACT_WIRE` | off       | Redacts outbound traffic as well and rehydrates the streamed response                      |
 | `IRIS_UI_TOKEN`     | unset     | Requires `X-Iris-Token` on mutating UI routes                                              |
+| `IRIS_COUNT_TOKENS` | on        | Counts the prefix exactly via `count_tokens`. Free, cached per prefix. `=0` to disable    |
 
 Project-local captures are stored in:
 
@@ -280,7 +311,7 @@ Authority envelopes and decisions are stored under:
 | Guide                                                                 | Covers                                                                  |
 | --------------------------------------------------------------------- | ----------------------------------------------------------------------- |
 | [Quickstart](https://hammadabbasi.com/iris/docs/quickstart)           | Installation, first session, and first trim                             |
-| [Context](https://hammadabbasi.com/iris/docs/context)                 | Request composition, token measurement, and calibration                 |
+| [Context](https://hammadabbasi.com/iris/docs/context)                 | Request composition, token measurement, calibration, and billing modes  |
 | [Optimize](https://hammadabbasi.com/iris/docs/optimize)               | Reviewing tool schemas and publishing trims                             |
 | [Guard](https://hammadabbasi.com/iris/docs/guard)                     | Authority envelopes, effect classification, and policy decisions        |
 | [Security](https://hammadabbasi.com/iris/docs/security)               | Threat model, redaction, credentials, and storage                       |
@@ -305,7 +336,7 @@ npm test
 
 Changes to Guard behavior should include a corresponding case in `tests/guard.test.mjs`.
 
-Cost figures use published list rates for models Iris recognizes. Models without a known price are left unpriced instead of being displayed as `$0.00`.
+Cost figures use published list rates for models Iris recognizes. Models without a known price are left unpriced instead of being displayed as `$0.00`. Iris detects your billing mode, which determines whether those figures represent a bill at all, but it does not know your rate — promotional pricing, negotiated discounts and seat allowances are not reflected.
 
 Token counts are calibrated estimates and can differ from final billing totals. Use Claude Console for invoice values.
 

@@ -323,5 +323,104 @@ const dash = readFileSync(new URL("../ui/iris.html", import.meta.url), "utf8");
 assert(!dash.includes("a.k||actKey(a)"), "dashboard does not trust the server's action key");
 assert(dash.includes("const k=actKey(a);"), "dashboard derives one action key for both sources");
 
+/* ── Billing mode, end to end ──────────────────────────────────────────────
+   The classifier is unit-tested in plan.test.mjs. What this checks is the wiring:
+   a real request through the real proxy must move the classification onto /__meta,
+   because that is the only path the dashboard reads it from. The upstream is
+   unreachable here — a 502 is fine, since detection happens before forwarding. */
+const planPort = wirePort + 4;
+const { server: planSrv } = startServer({ port: planPort, projectRoot: wireRoot, handleSignals: false });
+await new Promise((r) => setTimeout(r, 200));
+
+assert((await fetch(`http://127.0.0.1:${planPort}/__meta`).then((r) => r.json())).plan.mode === null,
+  "no billing mode claimed before any proxied traffic");
+
+const SEAT_TOKEN = "sk-ant-oat01-E2E-SECRET-VALUE";
+await fetch(`http://127.0.0.1:${planPort}/v1/messages`, {
+  method: "POST",
+  headers: { "content-type": "application/json", authorization: `Bearer ${SEAT_TOKEN}` },
+  body: JSON.stringify({ model: "claude-opus-5", messages: [] }),
+}).catch(() => {});
+
+const metaPlan = (await fetch(`http://127.0.0.1:${planPort}/__meta`).then((r) => r.json())).plan;
+assert(metaPlan.mode === "subscription", "a bearer token on the wire reaches /__meta as a seat");
+assert(metaPlan.observed === 1, "/__meta counts the classified request");
+assert(metaPlan.confident === false, "a seat is reported without confidence");
+assert(!JSON.stringify(metaPlan).includes(SEAT_TOKEN), "/__meta never carries the credential");
+assert(!JSON.stringify(metaPlan).includes("E2E-SECRET"), "/__meta never carries a fragment of it");
+
+/* The module the dashboard labels its figures from is the one this process
+   classifies with — same rule as the price book, so the two cannot drift. */
+const planSrc = await fetch(`http://127.0.0.1:${planPort}/__plan.mjs`);
+assert(planSrc.status === 200, "/__plan.mjs is served");
+assert((planSrc.headers.get("content-type") || "").includes("javascript"), "/__plan.mjs is served as a module");
+assert((await planSrc.text()).includes("export const PLAN_MODES"), "/__plan.mjs is the real module");
+planSrv.close();
+
+/* ── Wiring status ─────────────────────────────────────────────────────────
+   An empty capture has two causes that look identical on screen: an idle agent,
+   and an agent pointed somewhere else. The server can tell them apart, so it must
+   report which — checked live on each /__meta, because autoWireSettings() runs once
+   at startup and does not run at all under IRIS_AUTOWIRE=0. */
+const wireRoot2 = mkdtempSync(join(tmpdir(), "iris-wire2-"));
+mkdirSync(join(wireRoot2, ".claude"), { recursive: true });
+const wireSettings2 = join(wireRoot2, ".claude", "settings.json");
+const wirePort2 = wirePort + 5;
+const writeBase = (v) =>
+  writeFileSync(wireSettings2, JSON.stringify(v === undefined ? { env: {} } : { env: { ANTHROPIC_BASE_URL: v } }, null, 2));
+
+// This file sets PROXY_SETTINGS_PATH globally; point it at this project.
+const prevSettingsEnv2 = process.env.PROXY_SETTINGS_PATH;
+process.env.PROXY_SETTINGS_PATH = wireSettings2;
+process.env.IRIS_AUTOWIRE = "0";
+writeBase(`http://127.0.0.1:${wirePort2}`);
+/* Iris moves to the next free port when the requested one is taken, so the bound
+   port — not the requested one — is what settings.json has to match. */
+const { server: wireSrv2, boundPort: wireBound2 } = startServer({
+  port: wirePort2, projectRoot: wireRoot2, handleSignals: false,
+});
+await new Promise((r) => setTimeout(r, 200));
+const wiring = () => fetch(`http://127.0.0.1:${wireBound2}/__meta`).then((r) => r.json()).then((d) => d.wiring);
+writeBase(`http://127.0.0.1:${wireBound2}`);
+
+let w = await wiring();
+assert(w.state === "ok", "wiring: a matching port reports ok");
+assert(w.boundPort === wireBound2, "wiring: reports the port Iris bound");
+assert(w.autowire === false, "wiring: reports that autowire is off");
+
+/* The state this whole check exists for. */
+writeBase("http://127.0.0.1:9999");
+w = await wiring();
+assert(w.state === "elsewhere", "wiring: a different loopback port is reported, not silently ignored");
+assert(w.agentPort === 9999, "wiring: names the port the agent is actually using");
+assert(w.url === "http://127.0.0.1:9999", "wiring: quotes the configured URL back");
+
+/* Re-read on every request, so fixing the file is reflected without a restart. */
+writeBase(`http://127.0.0.1:${wireBound2}`);
+assert((await wiring()).state === "ok", "wiring: recovers as soon as the file is corrected");
+
+writeBase(undefined);
+assert((await wiring()).state === "unset", "wiring: no base URL at all is its own state");
+
+writeBase("https://gateway.example.com");
+w = await wiring();
+assert(w.state === "external", "wiring: a non-loopback URL is reported as external");
+assert(w.agentPort === 443, "wiring: an https URL with no port implies 443");
+
+writeBase("not a url");
+assert((await wiring()).state === "unparseable", "wiring: an unparseable value is reported, not repaired");
+
+writeFileSync(wireSettings2, "{ broken json");
+assert((await wiring()).state === "no-settings", "wiring: an unreadable settings file is reported, not fatal");
+
+/* Read-only: reporting a mismatch must never rewrite the user's file. */
+writeBase("http://127.0.0.1:9999");
+const before = readFileSync(wireSettings2, "utf8");
+await wiring();
+assert(readFileSync(wireSettings2, "utf8") === before, "wiring: the check never edits settings.json");
+wireSrv2.close();
+delete process.env.IRIS_AUTOWIRE;
+process.env.PROXY_SETTINGS_PATH = prevSettingsEnv2;
+
 console.log(`server: ${n - fail}/${n} ok`);
 process.exit(fail ? 1 : 0);

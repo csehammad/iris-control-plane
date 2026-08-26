@@ -3,7 +3,8 @@
  * Append-only JSON array on disk. Zero deps.
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { writeJsonAtomic } from "../runtime/atomic.mjs";
 import { dirname } from "node:path";
 
 /**
@@ -79,7 +80,7 @@ export function createDecisionLedger({ path } = /** @type {any} */ ({})) {
 
   function save() {
     mkdirSync(dirname(path), { recursive: true });
-    writeFileSync(path, JSON.stringify(records, null, 2) + "\n", "utf8");
+    writeJsonAtomic(path, records, { indent: 2, trailingNewline: true });
     return path;
   }
 
