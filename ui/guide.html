@@ -263,7 +263,7 @@ welcome:`<svg viewBox="0 0 920 220" fill="none" xmlns="http://www.w3.org/2000/sv
   <text x="400" y="207" text-anchor="middle" fill="#C9D4FF" font-size="11" font-family="system-ui">dashboard /__monitor</text>
 </svg>`,
 install:`<svg viewBox="0 0 920 200" fill="none"><text x="40" y="36" fill="#9AA3B8" font-size="12" font-family="system-ui" letter-spacing="2">FROM NPM</text>
-  ${[["1","npx @zero-drift/iris","leave this running"],["2","npx @zero-drift/iris init","in the Claude Code repo"],["3","restart Claude Code","picks up BASE_URL"],["4","open :8787","dashboard + /__guide"]].map(([n,a,b],i)=>{
+  ${[["1","npx @hammadulhaq/iris","leave this running"],["2","npx @hammadulhaq/iris init","in the Claude Code repo"],["3","restart Claude Code","picks up BASE_URL"],["4","open :8787","dashboard + /__guide"]].map(([n,a,b],i)=>{
     const x=40+i*220; return `<rect x="${x}" y="56" width="200" height="110" rx="12" fill="#1F2433" stroke="#3A4258"/>
     <circle cx="${x+28}" cy="86" r="14" fill="#1B4DFF"/><text x="${x+28}" y="91" text-anchor="middle" fill="#fff" font-size="13" font-family="system-ui" font-weight="700">${n}</text>
     <text x="${x+18}" y="118" fill="#fff" font-size="12" font-family="ui-monospace,monospace">${a}</text>
@@ -418,7 +418,7 @@ welcome:`
                   ├── Remove unused tool schemas
                   ├── Apply Guard rules
                   └── Record what ran</pre>
-<p>The npm package is <span class="mono">@zero-drift/iris</span>. The open-source version does not need an Iris-hosted service.</p>
+<p>The npm package is <span class="mono">@hammadulhaq/iris</span>. The open-source version does not need an Iris-hosted service.</p>
 <p>The useful question changes as you work:</p>
 <ul>
   <li>What is Claude carrying into this request?</li>
@@ -430,9 +430,9 @@ welcome:`
 install:`
 <p>Requirements: Node.js 18+, Claude Code, and an Anthropic account Claude Code can already use.</p>
 <p>Start Iris:</p>
-<pre>npx @zero-drift/iris</pre>
+<pre>npx @hammadulhaq/iris</pre>
 <p>Then run the initializer from the project you want to use with Iris (the folder that contains <span class="mono">.claude/</span>):</p>
-<pre>npx @zero-drift/iris init</pre>
+<pre>npx @hammadulhaq/iris init</pre>
 <p>Restart Claude Code or open a fresh session. Then open:</p>
 <pre>http://127.0.0.1:8787</pre>
 <p>This guide is at <span class="mono">http://127.0.0.1:8787/__guide</span>. Use Claude Code normally. Iris starts filling in once traffic passes through it.</p>
@@ -440,7 +440,7 @@ install:`
 <p>From this repository:</p>
 <pre>cd iris
 npm start</pre>
-<p>Then <span class="mono">npx @zero-drift/iris init</span> from the project root, same as above. Use the IPv4 address. Iris does not listen on IPv6 <span class="mono">localhost</span>.</p>
+<p>Then <span class="mono">npx @hammadulhaq/iris init</span> from the project root, same as above. Use the IPv4 address. Iris does not listen on IPv6 <span class="mono">localhost</span>.</p>
 `,
 init:`
 <p>Iris uses Claude Code features that already exist. Re-running <span class="mono">init</span> does not wipe your existing deny list.</p>
@@ -665,11 +665,11 @@ cheatsheet:`
   </tbody>
 </table>
 <p><span class="k">⌘K</span> or <span class="k">Ctrl+K</span> jumps to a view, call, or tool.</p>
-<pre>npx @zero-drift/iris              # start proxy + UI
-npx @zero-drift/iris init         # wire this project
-npx @zero-drift/iris hook         # used by Claude Code hooks
-npx @zero-drift/iris version
-npx @zero-drift/iris help</pre>
+<pre>npx @hammadulhaq/iris              # start proxy + UI
+npx @hammadulhaq/iris init         # wire this project
+npx @hammadulhaq/iris hook         # used by Claude Code hooks
+npx @hammadulhaq/iris version
+npx @hammadulhaq/iris help</pre>
 <p>From a clone: <span class="mono">cd iris && npm start</span> / <span class="mono">npm test</span>.</p>
 <table class="table">
   <thead><tr><th>Variable</th><th>Default</th><th>What it does</th></tr></thead>

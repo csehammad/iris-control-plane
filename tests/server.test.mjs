@@ -57,7 +57,7 @@ assert(!html.includes("fonts.googleapis.com"), "no Google Fonts CDN");
 const guide = await fetch(`http://127.0.0.1:${port}/__guide`);
 assert(guide.ok, "guide");
 const guideHtml = await guide.text();
-assert(guideHtml.includes("npx @zero-drift/iris"), "guide is npm-first");
+assert(guideHtml.includes("npx @hammadulhaq/iris"), "guide is npm-first");
 assert(guideHtml.includes("/__guide"), "guide self-url");
 
 const evalRes = await fetch(`http://127.0.0.1:${port}/__guard/evaluate`, {
@@ -275,7 +275,7 @@ process.env.PROXY_SETTINGS_PATH = previousSettingsEnv;
 const hookRoot = mkdtempSync(join(tmpdir(), "iris-hook-"));
 mkdirSync(join(hookRoot, ".claude"), { recursive: true });
 const hookSettings = join(hookRoot, ".claude", "settings.json");
-const STALE = 'node "/nonexistent/_npx/OLDHASH/node_modules/@zero-drift/iris/bin/iris.mjs" hook';
+const STALE = 'node "/nonexistent/_npx/OLDHASH/node_modules/@hammadulhaq/iris/bin/iris.mjs" hook';
 
 const fresh = installClaudeProject({ cwd: hookRoot });
 assert(fresh.hookAction === "installed", "first init installs the hook");

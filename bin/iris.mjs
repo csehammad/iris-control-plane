@@ -126,7 +126,7 @@ Bare tool denies remove schemas from Claude's context.
 PreToolUse gates execution against the Task Authority Envelope.
 ${result.baseUrlAction === "external" ? "\n! Claude Code is NOT pointed at Iris. Set env.ANTHROPIC_BASE_URL yourself if that is not deliberate.\n" : ""}
 Start:
-  npx @zero-drift/iris${port === 8787 ? "" : ` --port ${port}`}
+  npx @hammadulhaq/iris${port === 8787 ? "" : ` --port ${port}`}
 
 UI:    http://127.0.0.1:${port}/__monitor
 Guide: http://127.0.0.1:${port}/__guide

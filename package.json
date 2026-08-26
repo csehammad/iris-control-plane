@@ -1,6 +1,6 @@
 {
-  "name": "@zero-drift/iris",
-  "version": "1.1.0",
+  "name": "@hammadulhaq/iris",
+  "version": "1.0.0",
   "description": "Inspect Claude Code context, remove unused tool schemas, and control tool execution before it happens.",
   "type": "module",
   "bin": {

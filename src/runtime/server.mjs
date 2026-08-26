@@ -910,7 +910,7 @@ export function startServer(opts = {}) {
       console.log("");
       console.log(`  ! ANTHROPIC_BASE_URL points at port ${wire.wired}, but Iris is on ${boundPort},`);
       console.log("    and this project has no Iris hook installed. Run:");
-      console.log(`      npx @zero-drift/iris init --port ${boundPort}`);
+      console.log(`      npx @hammadulhaq/iris init --port ${boundPort}`);
     } else if (wire.action === "failed") {
       console.log("");
       console.log(`  ! Could not update ${paths.settingsPath}: ${wire.error}`);
@@ -929,7 +929,7 @@ export function startServer(opts = {}) {
       console.log("  ! Guard hook points at a path that no longer exists:");
       for (const file of broken) console.log(`      ${file}`);
       console.log("    Every tool call will fail this hook until it is re-pointed. Run:");
-      console.log("      npx @zero-drift/iris init");
+      console.log("      npx @hammadulhaq/iris init");
     }
     console.log("");
   }
@@ -964,7 +964,7 @@ export function startServer(opts = {}) {
       console.error("");
       console.error(`Port ${boundPort} is already in use by ${who}.`);
       console.error("  You asked for this port explicitly, so Iris will not move on its own.");
-      console.error(`  Free it, or start on another port:  PROXY_PORT=${boundPort + 1} npx @zero-drift/iris`);
+      console.error(`  Free it, or start on another port:  PROXY_PORT=${boundPort + 1} npx @hammadulhaq/iris`);
       console.error("  Iris re-points this project's settings.json to whichever port it binds.");
       console.error("");
       if (CLI_MODE) process.exit(1);
@@ -975,7 +975,7 @@ export function startServer(opts = {}) {
     if (next == null) {
       console.error("");
       console.error(`Port ${boundPort} is in use by ${who}, and no free port was found in ${boundPort + 1}-${boundPort + 20}.`);
-      console.error("  Set one explicitly:  PROXY_PORT=9100 npx @zero-drift/iris");
+      console.error("  Set one explicitly:  PROXY_PORT=9100 npx @hammadulhaq/iris");
       console.error("");
       if (CLI_MODE) process.exit(1);
       return;

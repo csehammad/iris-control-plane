@@ -2225,7 +2225,7 @@ function vGuard(){
           <div class="kv"><span class="mono small">${esc(d.t||'').slice(11,19)} · ${esc(d.tool||'?')}</span>
             <b class="tag ${d.decision==='DENY'?'bad':d.decision==='ASK'?'warn':'ok'}">${esc(d.decision||'')}</b></div>
           <div class="small muted" style="margin:-4px 0 8px">${esc(d.reason||'')}</div>`).join(''):
-          `<div class="empty">No PreToolUse decisions in ${esc(timeWindow().label.toLowerCase())}. ${GUARD.decisions.length?`Iris has ${fmt(GUARD.decisions.length)} recorded — try a wider range.`:'Run <b class="mono">npx @zero-drift/iris init</b> to install hooks.'}</div>`}
+          `<div class="empty">No PreToolUse decisions in ${esc(timeWindow().label.toLowerCase())}. ${GUARD.decisions.length?`Iris has ${fmt(GUARD.decisions.length)} recorded — try a wider range.`:'Run <b class="mono">npx @hammadulhaq/iris init</b> to install hooks.'}</div>`}
       </div></div>
   </div>`;
 }
@@ -2652,7 +2652,7 @@ function wiringAlert(){
     unset:{t:'Your agent is not routed through Iris at all',
       b:`No <b class="mono">ANTHROPIC_BASE_URL</b> is set in <b class="mono">${esc(w.settingsPath||'settings.json')}</b>,`
         +` so Claude Code talks straight to the Anthropic API and nothing reaches this proxy.`
-        +` Run <b class="mono">npx @zero-drift/iris init --port ${esc(String(w.boundPort))}</b> to wire it up.`},
+        +` Run <b class="mono">npx @hammadulhaq/iris init --port ${esc(String(w.boundPort))}</b> to wire it up.`},
     external:{t:'Your agent is pointed at a non-local URL',
       b:`<b class="mono">ANTHROPIC_BASE_URL</b> is <b class="mono">${esc(w.url||'')}</b> — a gateway or another host,`
         +` not this machine. Iris left it alone deliberately, but it means no traffic arrives here. ${fix}`},
@@ -2661,7 +2661,7 @@ function wiringAlert(){
         +` Claude Code may be failing outright. ${fix}`},
     'no-settings':{t:'No Claude Code settings found for this project',
       b:`Iris could not read <b class="mono">${esc(w.settingsPath||'.claude/settings.json')}</b>, so nothing points here.`
-        +` Run <b class="mono">npx @zero-drift/iris init --port ${esc(String(w.boundPort))}</b> in this workspace.`},
+        +` Run <b class="mono">npx @hammadulhaq/iris init --port ${esc(String(w.boundPort))}</b> in this workspace.`},
   }[w.state];
   if(!M) return null;
   /* Say when Iris chose not to fix this itself, so the state does not read as a bug. */

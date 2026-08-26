@@ -2,10 +2,10 @@
 
 **Inspect Claude Code context, remove unused tool schemas, and control tool execution before it happens.**
 
-[![npm](https://img.shields.io/npm/v/@zero-drift/iris.svg)](https://www.npmjs.com/package/@zero-drift/iris)
-[![node](https://img.shields.io/node/v/@zero-drift/iris.svg)](https://nodejs.org)
+[![npm](https://img.shields.io/npm/v/@hammadulhaq/iris.svg)](https://www.npmjs.com/package/@hammadulhaq/iris)
+[![node](https://img.shields.io/node/v/@hammadulhaq/iris.svg)](https://nodejs.org)
 [![tests](https://img.shields.io/badge/tests-548%20passing-brightgreen.svg)](#running-from-a-checkout)
-[![license](https://img.shields.io/npm/l/@zero-drift/iris.svg)](./LICENSE)
+[![license](https://img.shields.io/npm/l/@hammadulhaq/iris.svg)](./LICENSE)
 
 Iris is a local proxy and policy layer for [Claude Code](https://code.claude.com). It binds to `127.0.0.1` and sits between Claude Code and Anthropic.
 
@@ -61,8 +61,8 @@ The band at the top represents a live turn to scale. The system prompt and tool 
 Requires Node 18+, Claude Code, and an Anthropic account that Claude Code can already use.
 
 ```bash
-npx @zero-drift/iris          # terminal 1: keep Iris running
-npx @zero-drift/iris init     # terminal 2: run from a project with .claude/
+npx @hammadulhaq/iris          # terminal 1: keep Iris running
+npx @hammadulhaq/iris init     # terminal 2: run from a project with .claude/
 ```
 
 Restart Claude Code, then open:
